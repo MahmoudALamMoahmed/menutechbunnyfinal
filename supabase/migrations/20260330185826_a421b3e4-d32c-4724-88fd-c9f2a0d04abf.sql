@@ -1,0 +1,1 @@
+DROP POLICY "public_read_restaurants" ON restaurants;

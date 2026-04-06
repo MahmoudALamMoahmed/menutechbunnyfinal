@@ -1,0 +1,1 @@
+DROP VIEW IF EXISTS public.wallets_with_restaurants;
