@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 
-const CDN_HOSTNAME = "menutechfinal.b-cdn.net";
+const CDN_HOSTNAME = "MenuTech.b-cdn.net";
 
 // ============ اعدادات ضغط الصور حسب النوع (غلاف/شعار/منتج) - Image Compression Options ============
 
