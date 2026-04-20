@@ -922,6 +922,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_public_restaurant_data: {
+        Args: { p_username: string }
+        Returns: Json
+      }
       get_restaurant_limits: {
         Args: { p_restaurant_id: string }
         Returns: {
