@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error(`Exception renewing subscription ${sub.id}:`, err);
         results.failed++;
-        results.errors.push(`Sub ${sub.id}: ${err.message}`);
+        results.errors.push(`Sub ${sub.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -132,7 +132,8 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Auto-renewal error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

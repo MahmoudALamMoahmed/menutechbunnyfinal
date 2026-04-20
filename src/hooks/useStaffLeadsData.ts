@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 
 export type ContactLead = Tables<'contact_leads'>;
 
@@ -22,7 +22,7 @@ export function useUpdateLead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status?: string; notes?: string }) => {
-      const updates: Record<string, string> = {};
+      const updates: TablesUpdate<'contact_leads'> = {};
       if (status !== undefined) updates.status = status;
       if (notes !== undefined) updates.notes = notes;
       const { error } = await supabase
