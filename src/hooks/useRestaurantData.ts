@@ -9,6 +9,32 @@ const MEDIUM_GC = 1000 * 60 * 15;
 
 // ─── React Query Hooks (للجمهور - مع فلاتر التوفر/النشاط) ──
 
+// Hook موحّد: جلب كل بيانات صفحة المطعم العامة في استدعاء واحد (RPC)
+export function usePublicRestaurantData(username: string | undefined) {
+  return useQuery({
+    queryKey: ['public_restaurant_data', username],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_public_restaurant_data', {
+        p_username: username!,
+      });
+      if (error) throw error;
+      return data as {
+        restaurant: any;
+        categories: any[];
+        menu_items: any[];
+        sizes: any[];
+        extras: any[];
+        branches: any[];
+        delivery_areas: any[];
+      } | null;
+    },
+    enabled: !!username,
+    staleTime: MEDIUM_STALE,
+    gcTime: MEDIUM_GC,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useRestaurant(username: string | undefined) {
   return useQuery({
     queryKey: ['restaurant', username],
