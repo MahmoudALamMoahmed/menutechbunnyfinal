@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { deleteFromBunny } from '@/lib/bunny';
 
@@ -384,7 +385,7 @@ export function useSaveRestaurant(username: string | undefined) {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data, ownerId }: { id?: string; data: { name: string; username: string; [key: string]: any }; ownerId: string }) => {
+    mutationFn: async ({ id, data, ownerId }: { id?: string; data: TablesUpdate<'restaurants'> & { name: string; username: string }; ownerId: string }) => {
       if (id) {
         const { error } = await supabase.from('restaurants').update(data).eq('id', id);
         if (error) throw error;
@@ -419,7 +420,7 @@ export function useUpdateOrderStatus(restaurantOrBranchId: string | undefined, i
 
   return useMutation({
     mutationFn: async ({ orderId, status, isConfirmed }: { orderId: string; status: string; isConfirmed?: boolean }) => {
-      const updateData: Record<string, any> = { status, updated_at: new Date().toISOString() };
+      const updateData: TablesUpdate<'orders'> = { status, updated_at: new Date().toISOString() };
       if (isConfirmed !== undefined) updateData.is_confirmed = isConfirmed;
       const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
       if (error) throw error;
