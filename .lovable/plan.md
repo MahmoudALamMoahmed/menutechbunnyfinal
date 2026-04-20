@@ -1,49 +1,147 @@
-## خطة إصلاح Build Errors
 
-كل الأخطاء سببها واحد: **TypeScript الصارم** يرفض الـ generic types (`Record<string, any>`, `Record<string, string>`, `unknown`) عند تمريرها لدوال Supabase أو `error.message`. الحل بسيط ومحدود — **بدون أي تغيير في سلوك الكود**.
 
-### 1) `src/hooks/useAdminMutations.ts` — سطر 389 و 424
+## الخطة: RPC واحدة لجلب بيانات صفحة المطعم العامة
 
-المشكلة: `supabase.from('restaurants').update(data)` و `supabase.from('orders').update(updateData)` يستقبلان نوع صارم، والـ `data` الوارد عنده index signature `[key: string]: any` اللي مش متوافق.
+### الفكرة باختصار
 
-الإصلاح:
+دلوقتي صفحة `/:username` بتعمل **7 طلبات HTTP** متتالية للسيرفر (restaurant → categories → menu_items → sizes → extras → branches → delivery_areas). كل طلب فيهم بياخد latency (round-trip) لوحده.
 
-- **سطر 387**: تغيير نوع `data` من `{ name: string; username: string; [key: string]: any }` إلى استخدام `TablesUpdate<'restaurants'> & { name: string; username: string }` المستورد من `@/integrations/supabase/types`.
-- **سطر 422**: تغيير `Record<string, any>` إلى `TablesUpdate<'orders'>`.
+الحل: **RPC function واحدة** اسمها `get_public_restaurant_data(p_username)` بترجع كل البيانات دي مرة واحدة في JSON. النتيجة: **طلب HTTP واحد بدل 7**، السرعة بتزيد بشكل ملحوظ خصوصاً على شبكات الموبايل.
 
-هذا يحافظ على نفس السلوك 100% — الفرق الوحيد أن الأنواع أصبحت متوافقة مع schema الفعلي.
+---
 
-### 2) `src/hooks/useStaffLeadsData.ts` — سطر 25
+### اللي هيتغير
 
-المشكلة: `Record<string, string>` غير متوافق مع `TablesUpdate<'contact_leads'>`.
+#### 1) Migration جديدة — إنشاء RPC function
 
-الإصلاح: تغيير `Record<string, string>` إلى `TablesUpdate<'contact_leads'>` (مع import من types).
+```sql
+CREATE OR REPLACE FUNCTION public.get_public_restaurant_data(p_username text)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_restaurant record;
+  v_result jsonb;
+BEGIN
+  -- 1) جلب المطعم من الـ view العام
+  SELECT * INTO v_restaurant
+  FROM public_restaurants
+  WHERE username = p_username
+  LIMIT 1;
 
-### 3) `supabase/functions/auto-renew-subscriptions/index.ts` — سطر 108 و 135
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
 
-المشكلة: في `catch (err)` و `catch (error)` يكون النوع `unknown` في Deno strict mode، فلا يمكن الوصول إلى `.message` مباشرة.
+  -- 2) تجميع كل البيانات في JSON واحد
+  SELECT jsonb_build_object(
+    'restaurant', to_jsonb(v_restaurant),
 
-الإصلاح:
+    'categories', COALESCE((
+      SELECT jsonb_agg(to_jsonb(c) ORDER BY c.display_order)
+      FROM categories c WHERE c.restaurant_id = v_restaurant.id
+    ), '[]'::jsonb),
 
-- **سطر 108**: `err instanceof Error ? err.message : String(err)`
-- **سطر 135**: `error instanceof Error ? error.message : String(error)`
+    'menu_items', COALESCE((
+      SELECT jsonb_agg(to_jsonb(m) ORDER BY m.display_order)
+      FROM menu_items m
+      WHERE m.restaurant_id = v_restaurant.id AND m.is_available = true
+    ), '[]'::jsonb),
 
-هذا هو النمط القياسي الآمن ولا يغير سلوك الكود.
+    'sizes', COALESCE((
+      SELECT jsonb_agg(to_jsonb(s) ORDER BY s.display_order)
+      FROM sizes s
+      JOIN menu_items mi ON mi.id = s.menu_item_id
+      WHERE mi.restaurant_id = v_restaurant.id
+    ), '[]'::jsonb),
 
-### ضمان عدم التأثير على باقي المشروع
+    'extras', COALESCE((
+      SELECT jsonb_agg(to_jsonb(e) ORDER BY e.display_order)
+      FROM extras e
+      WHERE e.restaurant_id = v_restaurant.id AND e.is_available = true
+    ), '[]'::jsonb),
 
-- كل التعديلات **محلية** (4 أسطر فقط موزعة على 3 ملفات).
-- الاستيرادات الجديدة (`TablesUpdate`) من نفس الملف الموجود `src/integrations/supabase/types.ts` بدون أي تعديل عليه.
-- لا تغيير في أي function signature عامة، ولا في الـ mutations behavior، ولا في الـ Edge Function logic.
-- Edge Function سيُنشر تلقائياً بعد التعديل وسيمر Type checking.
+    'branches', COALESCE((
+      SELECT jsonb_agg(to_jsonb(b) ORDER BY b.display_order)
+      FROM branches b
+      WHERE b.restaurant_id = v_restaurant.id AND b.is_active = true
+    ), '[]'::jsonb),
 
-### الملفات المتأثرة فقط
+    'delivery_areas', COALESCE((
+      SELECT jsonb_agg(to_jsonb(d) ORDER BY d.display_order)
+      FROM delivery_areas d
+      JOIN branches b ON b.id = d.branch_id
+      WHERE b.restaurant_id = v_restaurant.id
+        AND b.is_active = true
+        AND d.is_active = true
+    ), '[]'::jsonb)
+  ) INTO v_result;
 
-1. `src/hooks/useAdminMutations.ts` (تعديل سطرين + import واحد)
-2. `src/hooks/useStaffLeadsData.ts` (تعديل سطر + import واحد)
-3. `supabase/functions/auto-renew-subscriptions/index.ts` (تعديل سطرين)
+  RETURN v_result;
+END;
+$$;
 
-وافق على الخطة وسأنفذها فوراً.  
-  
-بعد انجازك للمهمه اشرح لي المشكله رقم 1 وما كان الضرر منها وما الفائدة بعد اصلاحها ؟  
-واشرح ماذا تقصد ب `TablesUpdate<'restaurants'>`
+GRANT EXECUTE ON FUNCTION public.get_public_restaurant_data(text) TO anon, authenticated;
+```
+
+#### 2) `src/hooks/useRestaurantData.ts` — إضافة hook جديدة بدون حذف القديمة
+
+هضيف hook جديدة `usePublicRestaurantData(username)` بتعمل استدعاء واحد للـ RPC وترجّع كل البيانات. **مش هحذف الـ hooks القديمة** لأنها مستخدمة في:
+
+- `useRestaurant` → في `ProtectedRoute.tsx`
+- `useBranches` → في `RestaurantFooter.tsx` و `BranchesDialog.tsx`
+- `useBranchPaymentMethods` → في `PaymentMethodSection.tsx`
+- `useCategories`, `useMenuItems`, `useSizes`, `useExtras`, `useDeliveryAreas` → مستخدمين بس في `Restaurant.tsx` لكن سيبهم موجودين كـ utility متاحة لو احتجناها لاحقاً.
+
+#### 3) `src/pages/Restaurant.tsx` — استبدال 7 hooks بـ hook واحدة
+
+بدل 7 سطور من الـ `useQuery`، هيبقى:
+
+```ts
+const { data, isLoading } = usePublicRestaurantData(username);
+const restaurant = data?.restaurant;
+const allCategories = data?.categories ?? [];
+const allMenuItems = data?.menu_items ?? [];
+const sizes = data?.sizes ?? [];
+const allExtras = data?.extras ?? [];
+const allBranches = data?.branches ?? [];
+const deliveryAreas = data?.delivery_areas ?? [];
+```
+
+كل باقي المنطق (الـ `useMemo` لتطبيق حدود الباقة، الفلترة بالـ category، الـ Cart، الـ Dialogs) **يفضل زي ما هو 100%**.
+
+---
+
+### ضمان عدم كسر أي حاجة
+
+| المكوّن | الحالة |
+|---------|--------|
+| `ProtectedRoute.tsx` (يستخدم `useRestaurant`) | لم يُمس |
+| `RestaurantFooter.tsx` (يستخدم `useBranches`) | لم يُمس |
+| `BranchesDialog.tsx` (يستخدم `useBranches`) | لم يُمس |
+| `PaymentMethodSection.tsx` (يستخدم `useBranchPaymentMethods`) | لم يُمس |
+| `useAvailabilityCheck.ts` (يقرأ `public_restaurants` مباشرة) | لم يُمس |
+| RLS policies | بدون تغيير — الـ RPC بتستخدم `SECURITY DEFINER` وبترجع نفس البيانات اللي الـ public RLS بتسمح بيها |
+| Schema | بدون أي تغيير في الجداول |
+| Cart, Limits, Dialogs | بدون تغيير |
+
+---
+
+### الفائدة المتوقعة
+
+- **قبل:** 7 round-trips متتالية ≈ 7 × ~150ms = ~1s على شبكة 4G
+- **بعد:** 1 round-trip ≈ ~200ms (السيرفر بيعمل 6 sub-queries موازية محلياً جوّا Postgres وهي أسرع جداً)
+- **تحسّن متوقع:** 60-75% في وقت تحميل صفحة المطعم العامة
+
+---
+
+### الملفات المتأثرة
+
+1. **migration جديدة** — إنشاء `get_public_restaurant_data` RPC
+2. **`src/hooks/useRestaurantData.ts`** — إضافة `usePublicRestaurantData` (إضافة فقط، بدون حذف)
+3. **`src/pages/Restaurant.tsx`** — استبدال 7 استدعاءات hooks بواحد
+
+وافق على الخطة وأنا هنفّذها.
+
