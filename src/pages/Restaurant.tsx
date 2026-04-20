@@ -12,7 +12,7 @@ import RestaurantSkeleton from '@/components/restaurant/RestaurantSkeleton';
 import CartDialog from '@/components/restaurant/CartDialog';
 import MenuGrid from '@/components/restaurant/MenuGrid';
 import { getLogoUrl, getCoverImageUrl, getCoverBlurUrl } from '@/lib/bunny';
-import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
+import { usePublicRestaurantData } from '@/hooks/useRestaurantData';
 import { useRestaurantLimits } from '@/hooks/useSubscription';
 import { useCart } from '@/hooks/useCart';
 import type { Tables } from '@/integrations/supabase/types';
@@ -24,15 +24,18 @@ export default function Restaurant() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // React Query - جلب بيانات المطعم
-  const { data: restaurant, isLoading: loadingRestaurant } = useRestaurant(username);
+  // RPC واحدة بدل 7 طلبات منفصلة
+  const { data: publicData, isLoading: loadingPublicData } = usePublicRestaurantData(username);
+  const restaurant = publicData?.restaurant ?? null;
   const restaurantId = restaurant?.id;
+  const allCategories = publicData?.categories ?? [];
+  const allMenuItems = publicData?.menu_items ?? [];
+  const sizes = publicData?.sizes ?? [];
+  const allExtras = publicData?.extras ?? [];
+  const allBranches = publicData?.branches ?? [];
+  const deliveryAreas = publicData?.delivery_areas ?? [];
+
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const { data: allCategories = [], isLoading: loadingCategories } = useCategories(restaurantId);
-  const { data: allMenuItems = [], isLoading: loadingMenuItems } = useMenuItems(restaurantId);
-  const { data: sizes = [] } = useSizes(restaurantId);
-  const { data: allExtras = [] } = useExtras(restaurantId);
-  const { data: allBranches = [] } = useBranches(restaurantId);
   const { data: limits } = useRestaurantLimits(restaurantId);
 
   // تقييد البيانات بحدود الباقة
@@ -45,9 +48,6 @@ export default function Restaurant() {
   }, [allMenuItems, limits?.max_items, activeCategory]);
   const extras = useMemo(() => limits?.max_extras != null ? allExtras.slice(0, limits.max_extras) : allExtras, [allExtras, limits?.max_extras]);
   const branches = useMemo(() => limits?.max_branches != null ? allBranches.slice(0, limits.max_branches) : allBranches, [allBranches, limits?.max_branches]);
-
-  const branchIds = useMemo(() => branches.map(b => b.id), [branches]);
-  const { data: deliveryAreas = [] } = useDeliveryAreas(branchIds.length > 0 ? branchIds : undefined);
 
   // Preload blur cover
   const coverBlurUrl = restaurant?.cover_image_url ? getCoverBlurUrl(restaurant.cover_image_url) : '';
@@ -77,7 +77,7 @@ export default function Restaurant() {
     setShowProductDialog(true);
   };
 
-  if (loadingRestaurant || loadingCategories || loadingMenuItems) return <RestaurantSkeleton />;
+  if (loadingPublicData) return <RestaurantSkeleton />;
 
   if (!restaurant) {
     return (
