@@ -131,27 +131,6 @@ export function useExtras(restaurantId: string | undefined) {
     refetchOnWindowFocus: false,
   });
 }
-
-export function useBranches(restaurantId: string | undefined) {
-  return useQuery({
-    queryKey: ['branches', restaurantId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('*')
-        .eq('restaurant_id', restaurantId!)
-        .eq('is_active', true)
-        .order('display_order');
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!restaurantId,
-    staleTime: LONG_STALE,
-    gcTime: LONG_GC,
-    refetchOnWindowFocus: false,
-  });
-}
-
 export function useDeliveryAreas(branchIds: string[] | undefined) {
   return useQuery({
     queryKey: ['delivery_areas', branchIds],

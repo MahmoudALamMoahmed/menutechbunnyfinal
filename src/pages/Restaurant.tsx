@@ -128,7 +128,7 @@ export default function Restaurant() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-3">
-              <BranchesDialog restaurantId={restaurant.id} trigger={
+              <BranchesDialog branches={branches} trigger={
                 <button className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 text-white rounded-xl flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300">
                   <Building2 className="w-5 h-5" />
                 </button>
@@ -187,7 +187,7 @@ export default function Restaurant() {
               <Home className="w-6 h-6" />
               <span>الرئيسية</span>
             </button>
-            <BranchesDialog restaurantId={restaurant.id} trigger={
+            <BranchesDialog branches={branches} trigger={
               <button className="flex flex-col items-center gap-0.5 text-xs transition text-gray-600 hover:text-red-500">
                 <Building2 className="w-6 h-6" />
                 <span>الفروع والتواصل</span>
@@ -207,7 +207,7 @@ export default function Restaurant() {
         sizes={sizes.filter(s => s.menu_item_id === selectedProduct?.id)} extras={extras} onAddToCart={addToCart} />
 
       {/* Restaurant Footer */}
-      <RestaurantFooter restaurant={restaurant} />
+      <RestaurantFooter restaurant={restaurant} branches={branches} />
     </PageTransition>
   );
 }

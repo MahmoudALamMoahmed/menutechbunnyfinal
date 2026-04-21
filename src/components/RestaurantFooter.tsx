@@ -9,18 +9,17 @@ import {
   Truck,
   Building2
 } from "lucide-react";
-import { useBranches } from '@/hooks/useRestaurantData';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Restaurant = Tables<'public_restaurants'>;
+type Branch = Tables<'branches'>;
 
 interface RestaurantFooterProps {
   restaurant: Restaurant;
+  branches: Branch[];
 }
 
-export default function RestaurantFooter({ restaurant }: RestaurantFooterProps) {
-  // React Query - جلب الفروع النشطة لعرضها في الفوتر
-  const { data: branches = [] } = useBranches(restaurant?.id);
+export default function RestaurantFooter({ restaurant, branches }: RestaurantFooterProps) {
 
   return (
     <footer className="bg-gray-900 text-white mt-12" dir="rtl">

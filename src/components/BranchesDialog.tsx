@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Phone, MapPin, Clock, Truck, MessageCircle } from 'lucide-react';
-import { useBranches } from '@/hooks/useRestaurantData';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Branch = Tables<'branches'>;
 
 interface BranchesDialogProps {
-  restaurantId: string;
+  branches: Branch[];
   trigger: React.ReactNode;
 }
 
-export default function BranchesDialog({ restaurantId, trigger }: BranchesDialogProps) {
+export default function BranchesDialog({ branches, trigger }: BranchesDialogProps) {
   // UI State - حالة فتح/إغلاق الحوار
   const [open, setOpen] = useState(false);
-  // React Query - جلب الفروع النشطة (يتم الجلب فقط عند فتح الحوار)
-  const { data: branches = [], isLoading: loading } = useBranches(open ? restaurantId : undefined);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -23,12 +23,8 @@ export default function BranchesDialog({ restaurantId, trigger }: BranchesDialog
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">فروعنا وأرقام التواصل</DialogTitle>
         </DialogHeader>
-        
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : branches.length === 0 ? (
+
+        {branches.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             لا توجد فروع حالياً
           </div>
