@@ -7,9 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const STORAGE_ZONE = "menutechfinal";
+const STORAGE_ZONE = "menutech";
 const STORAGE_HOSTNAME = "storage.bunnycdn.com";
-const CDN_HOSTNAME = "menutechfinal.b-cdn.net";
+const CDN_HOSTNAME = "MenuTech.b-cdn.net";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 serve(async (req) => {

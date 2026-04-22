@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const STORAGE_ZONE = "menutechfinal";
+const STORAGE_ZONE = "menutech";
 const STORAGE_HOSTNAME = "storage.bunnycdn.com";
 
 serve(async (req) => {
