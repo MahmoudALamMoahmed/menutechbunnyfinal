@@ -12,7 +12,7 @@ import { useAdminRestaurant, useAdminBranches, useAdminDeliveryAreas, useBranchS
 import {
   useSaveBranch, useDeleteBranch, useToggleBranchActive,
   useSaveDeliveryArea, useDeleteDeliveryArea, useReorderBranches, useReorderDeliveryAreas,
-} from "@/hooks/useAdminMutations";
+} from "@/hooks/admin-mutations/useBranchMutations";
 import { useLimitsCheck } from "@/hooks/useLimitsCheck";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
 import type { Tables } from "@/integrations/supabase/types";

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRestaurant } from "@/hooks/useAdminData";
-import { useSaveRestaurant } from "@/hooks/useAdminMutations";
+import { useSaveRestaurant } from "@/hooks/admin-mutations/useRestaurantMutations";
 import ImageUploader from "@/components/ImageUploader";
 import { getCoverPublicId, getLogoPublicId } from "@/lib/bunny";
 import { ArrowRight, Save, Store, ImageIcon } from "lucide-react";

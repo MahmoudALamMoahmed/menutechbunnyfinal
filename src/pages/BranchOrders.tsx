@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package, Building2, LogOut, Clock, Volume2, VolumeX } from 'lucide-react';
 import { useBranchOrders, usePendingOrdersCount } from '@/hooks/useAdminData';
-import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
+import { useUpdateOrderStatus } from '@/hooks/admin-mutations/useOrderMutations';
 import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';

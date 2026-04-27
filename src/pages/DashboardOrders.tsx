@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Package, Clock, Volume2, VolumeX } from "lucide-react";
 import { useAdminRestaurant, useAdminOrders, usePendingOrdersCount } from "@/hooks/useAdminData";
-import { useUpdateOrderStatus } from "@/hooks/useAdminMutations";
+import { useUpdateOrderStatus } from "@/hooks/admin-mutations/useOrderMutations";
 import { useAuth } from "@/hooks/useAuth";
 import OrderCard from "@/components/OrderCard";
 import OrderFilters from "@/components/OrderFilters";

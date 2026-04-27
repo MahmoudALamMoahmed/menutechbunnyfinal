@@ -9,7 +9,7 @@ import {
   useSaveCategory, useDeleteCategory, useSaveMenuItem, useDeleteMenuItem,
   useSaveSize, useDeleteSize, useSaveExtra, useDeleteExtra,
   useReorderCategories, useReorderMenuItems, useReorderExtras,
-} from "@/hooks/useAdminMutations";
+} from "@/hooks/admin-mutations/useMenuMutations";
 import { useLimitsCheck } from "@/hooks/useLimitsCheck";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";

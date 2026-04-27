@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRestaurant } from "@/hooks/useAdminData";
-import { useSaveRestaurant } from "@/hooks/useAdminMutations";
+import { useSaveRestaurant } from "@/hooks/admin-mutations/useRestaurantMutations";
 import { ArrowRight, Save, MapPin, Mail, Clock, Facebook, Instagram } from "lucide-react";
 
 export default function FooterManagement() {
