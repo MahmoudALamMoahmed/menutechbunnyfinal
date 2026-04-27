@@ -1,145 +1,101 @@
-## الخطة: تقسيم `useAdminMutations.ts` حسب الـ domain
+## الخطة: التحوّل الكامل للاستيراد المباشر + حذف الـ shim
 
-### ما هي الفائدة الفعلية؟ (إجابة صريحة)
-
-الملف الحالي **521 سطر** بيجمع 7 domains مختلفة (categories, menu items, sizes, extras, branches, delivery areas, restaurant info, orders, reorder). الفوائد الحقيقية:
-
-1. **سهولة التنقّل**: لما تشتغل على صفحة Menu Management، بتفتح ملف واحد صغير بدل ما تلفّ في 521 سطر.
-2. **تقليل احتمال الخطأ**: تعديلات مختلفة (فرع + قائمة) بتبقى في ملفات منفصلة، فمفيش تعارضات أو أخطاء غير مقصودة.
-3. **Code splitting أفضل**: Vite يقدر يحمّل الـ mutations الخاصة بصفحة معيّنة بس.
-4. **اختبار أسهل** (لو بعدين حبيت تكتب unit tests لكل domain).
-
-**متى الفكرة دي *مش* مفيدة؟** لو الملف صغير (< 200 سطر) أو بتتعامل مع domain واحد. هنا الملف وصل لـ 521 سطر ومقسّم فعلاً بـ comments داخلية لـ 7 أقسام — ده مؤشر واضح إنه كبر أوي ومحتاج تقسيم.
+### الهدف
+نخلص نهائياً من ملف الـ shim (`src/hooks/useAdminMutations.ts`) ونخلّي كل الصفحات تستورد مباشرةً من الملفات المخصصة لكل domain. النتيجة: كود أنضف، مفيش ملف وسيط، والمسار بيوضح الـ domain فوراً.
 
 ---
 
-### الهيكل المقترح (مرتّب ومفهوم)
+### تحليل الوضع الحالي
 
-```text
-src/hooks/admin-mutations/
-├── index.ts                       ← Re-exports (backward compatibility)
-├── _shared.ts                     ← Helpers مشتركة (invalidate, isLimitError, reorder)
-├── useMenuMutations.ts            ← Categories + Menu Items + Sizes + Extras
-├── useBranchMutations.ts          ← Branches + Delivery Areas
-├── useOrderMutations.ts           ← Order status updates
-└── useRestaurantMutations.ts      ← Restaurant info (logo, cover, social)
-```
+عندنا **6 صفحات** بتستورد من الـ shim، وكل واحدة بتستورد من **domain واحد بس**:
 
-**لماذا هذا التقسيم تحديداً؟**
+| الصفحة | الـ hooks المستوردة | الـ domain |
+|--------|---------------------|-----------|
+| `WhatsAppOrders.tsx` | `useUpdateOrderStatus` | Orders |
+| `DashboardOrders.tsx` | `useUpdateOrderStatus` | Orders |
+| `BranchesManagement.tsx` | `useSaveBranch`, `useDeleteBranch`, `useToggleBranchActive`, `useSaveDeliveryArea`, `useDeleteDeliveryArea`, `useReorderBranches`, `useReorderDeliveryAreas` | Branches |
+| `MenuManagement.tsx` | `useSaveCategory`, `useDeleteCategory`, `useSaveMenuItem`, `useDeleteMenuItem`, `useSaveSize`, `useDeleteSize`, `useSaveExtra`, `useDeleteExtra`, `useReorderCategories`, `useReorderMenuItems`, `useReorderExtras` | Menu |
+| `FooterManagement.tsx` | `useSaveRestaurant` | Restaurant |
+| `RestaurantInfo.tsx` | `useSaveRestaurant` | Restaurant |
 
-- **Menu domain واحد** (categories + items + sizes + extras) لأنهم بيشاركوا نفس الـ `useInvalidateMenu` helper، ومستخدمين كلهم في صفحة `MenuManagement.tsx` الوحيدة.
-- **Branches domain واحد** (branches + delivery areas) لأن delivery areas تابعة للفروع logically، ومشاركين `useInvalidateBranches`، ومستخدمين في صفحة `BranchesManagement.tsx`.
-- **Orders منفصل** لأنه مستخدم في 3 صفحات مختلفة (Dashboard / Branch / WhatsApp orders) وله منطقه الخاص (isBranch flag).
-- **Restaurant منفصل** لأنه بيأثّر على cache مختلف تماماً (`['restaurant', username]`) ومستخدم في صفحتين منفصلتين عن القائمة والفروع (`RestaurantInfo` و `FooterManagement`).
+**نقطة مهمة**: مفيش صفحة بتستورد من أكتر من domain → كل صفحة سطر import واحد بس بيتغير.
 
 ---
 
-### تفاصيل الملفات
+### التغييرات المقترحة
 
-#### 1) `_shared.ts` (الحدّ من التكرار)
+#### 1) تحديث الـ imports في الـ 6 صفحات
 
-يحتوي على:
+| الملف | قبل | بعد |
+|-------|-----|-----|
+| `src/pages/WhatsAppOrders.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useOrderMutations"` |
+| `src/pages/DashboardOrders.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useOrderMutations"` |
+| `src/pages/BranchesManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useBranchMutations"` |
+| `src/pages/MenuManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useMenuMutations"` |
+| `src/pages/FooterManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useRestaurantMutations"` |
+| `src/pages/RestaurantInfo.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useRestaurantMutations"` |
 
-- `useInvalidateMenu(restaurantId)` — مشترك بين 4 hooks في menu.
-- `useInvalidateBranches(restaurantId)` — مشترك بين 5 hooks في branches.
-- `isLimitError(error)` — helper معالجة أخطاء الـ triggers.
-- `useReorderMutation(tableName, cacheKeys)` — Generic helper للـ batch reorder (يستخدمه كلاً من menu و branches).
+**أسماء الـ hooks المستوردة لا تتغيّر** — بس مسار الـ `from` بيتغيّر.
 
-#### 2) `useMenuMutations.ts`
+#### 2) حذف ملف الـ shim نهائياً
+- حذف `src/hooks/useAdminMutations.ts` (4 أسطر)
 
-- `useSaveCategory` / `useDeleteCategory` / `useReorderCategories`
-- `useSaveMenuItem` / `useDeleteMenuItem` / `useReorderMenuItems`
-- `useSaveSize` / `useDeleteSize`
-- `useSaveExtra` / `useDeleteExtra` / `useReorderExtras`
-- تعريف `SaveItemData` interface داخل نفس الملف.
-
-#### 3) `useBranchMutations.ts`
-
-- `useSaveBranch` / `useDeleteBranch` / `useToggleBranchActive` / `useReorderBranches`
-- `useSaveDeliveryArea` / `useDeleteDeliveryArea` / `useReorderDeliveryAreas`
-- تعريف `SaveBranchData` و `SaveAreaData` داخل نفس الملف.
-- ملاحظة: `useReorderDeliveryAreas` الحالي فيه duplication للـ logic بدل استخدام `useReorderMutation` helper — هنستفيد من الفرصة ونوحّده مع الـ generic helper (clean code).
-
-#### 4) `useOrderMutations.ts`
-
-- `useUpdateOrderStatus(idOrBranch, isBranch)` فقط.
-
-#### 5) `useRestaurantMutations.ts`
-
-- `useSaveRestaurant(username)` فقط.
-
-#### 6) `index.ts` — Backward Compatibility
-
-Re-export كل الـ hooks بنفس أسمائها الحالية:
-
-```ts
-export * from './useMenuMutations';
-export * from './useBranchMutations';
-export * from './useOrderMutations';
-export * from './useRestaurantMutations';
-```
-
----
-
-### استراتيجية عدم الكسر (Backward Compatibility)
-
-**المشكلة**: 7 ملفات بتعمل `import { ... } from '@/hooks/useAdminMutations'`.
-
-**الحل**: الملف القديم `src/hooks/useAdminMutations.ts` هيتحوّل لـ **re-export shim** سطر واحد:
-
-```ts
-export * from './admin-mutations';
-```
-
-وبكدا:
-
-- **كل الـ imports الموجودة بتفضل شغّالة بدون أي تعديل** في الصفحات الـ 7.
-- لو حبيت تحدّث الـ imports لاحقاً لتستورد مباشرةً من الملفات الجديدة (أنظف)، تقدر — لكن مش إجباري دلوقتي.
-
----
-
-### Clean Code Improvements خلال التقسيم
-
-1. **استخراج helpers مكررة**: كل helper يُستخدم أكثر من مرة بنقله لـ `_shared.ts`.
-2. **توحيد `useReorderDeliveryAreas**`: بيستخدم الـ generic `useReorderMutation` بدل تكرار الكود (يحذف ~20 سطر مكرر).
-3. **توحيد التسميات**: كل ملف يبدأ بـ imports، helpers خاصة (لو فيه)، interfaces، ثم hooks بالترتيب: Save → Delete → Toggle → Reorder.
-4. **JSDoc قصير**: سطر توضيحي فوق كل hook (اختياري، لكن يُساعد IntelliSense).
-
----
-
-### ما الذي **لن** يتغيّر
-
-- أسماء كل الـ exports (backward compatible).
-- منطق الـ mutations (حرفياً نفسه).
-- Cache keys في React Query.
-- Toast messages.
-- Database / RLS / RPC.
-- أي ملف تاني في المشروع.
+#### 3) (اختياري) تبسيط `index.ts`
+- نسيب `src/hooks/admin-mutations/index.ts` كـ barrel للاستخدام المستقبلي (مثلاً لو حد عاوز يستورد من `@/hooks/admin-mutations` مباشرةً). أو نحذفه كمان لو مش هنحتاجه.
+- **التوصية**: نسيبه. مفيد لو ظهر use case مستقبلي.
 
 ---
 
 ### خطوات التنفيذ
 
-1. إنشاء مجلد `src/hooks/admin-mutations/` مع 6 ملفات.
-2. نقل الكود حسب الـ domain مع استخراج الـ helpers المشتركة.
-3. تحويل `src/hooks/useAdminMutations.ts` لـ re-export shim.
-4. تشغيل `npx tsc --noEmit` للتأكد من نجاح الـ build.
-5. (اختياري لاحقاً) تحديث الـ imports في الصفحات الـ 7 لتستورد من الملفات المباشرة.  
-  
-ملحوظه : لا تنسى تنظيف الاكواد القديمه
+1. تحديث الـ import في كل صفحة من الـ 6 (سطر واحد لكل ملف).
+2. حذف `src/hooks/useAdminMutations.ts`.
+3. تشغيل `npx tsc --noEmit` للتأكد من خلو المشروع من أي خطأ.
+4. التحقق إن مفيش ملف تاني في المشروع لسه بيستورد من المسار القديم (rg search).
+
+---
+
+### الفوائد بعد التنفيذ
+
+| البند | قبل | بعد |
+|-------|-----|-----|
+| **عدد محطات الـ import** | 3 ملفات (shim → barrel → الملف الفعلي) | 1 ملف مباشر |
+| **وضوح الـ domain** | غير واضح من سطر الـ import | واضح فوراً من المسار |
+| **حجم ملفات الـ wrapper** | shim (4 أسطر) + index (4 أسطر) = 8 أسطر زيادة | بس index (4 أسطر) |
+| **سهولة الـ refactor المستقبلي** | لو حذفت hook، صعب تتبّع مين بيستخدمه | المسار المباشر بيقول الـ domain فوراً |
+
+---
+
+### المخاطر
+
+**صفر**. الأسباب:
+- الـ exports من الملفات الجديدة موجودة فعلاً (تم التحقق).
+- TypeScript compiler هيمسك أي خطأ فوراً.
+- مفيش تغيير في الـ logic أو الـ runtime behavior.
+- مفيش تغيير في الـ React Query cache keys ولا الـ DB.
+
+---
+
+### ما الذي **لن** يتغيّر
+
+- محتوى ملفات `admin-mutations/` (الكود الفعلي).
+- أسماء أو signatures الـ hooks.
+- React Query cache keys.
+- أي صفحة من غير الـ 6 المذكورة.
+- `src/hooks/admin-mutations/index.ts` (يفضل barrel للاستخدام المستقبلي).
 
 ---
 
 ### الملفات المتأثرة
 
+| ملف | تغيير |
+|-----|-------|
+| `src/pages/WhatsAppOrders.tsx` | تعديل سطر import واحد |
+| `src/pages/DashboardOrders.tsx` | تعديل سطر import واحد |
+| `src/pages/BranchesManagement.tsx` | تعديل سطر import واحد |
+| `src/pages/MenuManagement.tsx` | تعديل سطر import واحد |
+| `src/pages/FooterManagement.tsx` | تعديل سطر import واحد |
+| `src/pages/RestaurantInfo.tsx` | تعديل سطر import واحد |
+| `src/hooks/useAdminMutations.ts` | **حذف نهائي** |
 
-| ملف                                                   | تغيير                           |
-| ----------------------------------------------------- | ------------------------------- |
-| `src/hooks/admin-mutations/_shared.ts`                | **جديد**                        |
-| `src/hooks/admin-mutations/useMenuMutations.ts`       | **جديد**                        |
-| `src/hooks/admin-mutations/useBranchMutations.ts`     | **جديد**                        |
-| `src/hooks/admin-mutations/useOrderMutations.ts`      | **جديد**                        |
-| `src/hooks/admin-mutations/useRestaurantMutations.ts` | **جديد**                        |
-| `src/hooks/admin-mutations/index.ts`                  | **جديد** (barrel file)          |
-| `src/hooks/useAdminMutations.ts`                      | يصير re-export shim من سطر واحد |
-| باقي الملفات (7 صفحات)                                | **لا تتغيّر**                   |
+**الإجمالي**: 6 أسطر تتعدّل + ملف واحد يتحذف.
