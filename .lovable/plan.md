@@ -1,101 +1,57 @@
-## الخطة: التحوّل الكامل للاستيراد المباشر + حذف الـ shim
+## الهدف
 
-### الهدف
-نخلص نهائياً من ملف الـ shim (`src/hooks/useAdminMutations.ts`) ونخلّي كل الصفحات تستورد مباشرةً من الملفات المخصصة لكل domain. النتيجة: كود أنضف، مفيش ملف وسيط، والمسار بيوضح الـ domain فوراً.
-
----
-
-### تحليل الوضع الحالي
-
-عندنا **6 صفحات** بتستورد من الـ shim، وكل واحدة بتستورد من **domain واحد بس**:
-
-| الصفحة | الـ hooks المستوردة | الـ domain |
-|--------|---------------------|-----------|
-| `WhatsAppOrders.tsx` | `useUpdateOrderStatus` | Orders |
-| `DashboardOrders.tsx` | `useUpdateOrderStatus` | Orders |
-| `BranchesManagement.tsx` | `useSaveBranch`, `useDeleteBranch`, `useToggleBranchActive`, `useSaveDeliveryArea`, `useDeleteDeliveryArea`, `useReorderBranches`, `useReorderDeliveryAreas` | Branches |
-| `MenuManagement.tsx` | `useSaveCategory`, `useDeleteCategory`, `useSaveMenuItem`, `useDeleteMenuItem`, `useSaveSize`, `useDeleteSize`, `useSaveExtra`, `useDeleteExtra`, `useReorderCategories`, `useReorderMenuItems`, `useReorderExtras` | Menu |
-| `FooterManagement.tsx` | `useSaveRestaurant` | Restaurant |
-| `RestaurantInfo.tsx` | `useSaveRestaurant` | Restaurant |
-
-**نقطة مهمة**: مفيش صفحة بتستورد من أكتر من domain → كل صفحة سطر import واحد بس بيتغير.
+الكود حالياً **سليم وطبيعي** والـ CLS = 0.01 ممتاز. الخطة دي مجرد **تنضيف تجميلي** لإزالة dead code وتقليل أي layout shift متبقي. **مفيش أي مخاطر** على الموقع.
 
 ---
 
-### التغييرات المقترحة
+## التعديلات
 
-#### 1) تحديث الـ imports في الـ 6 صفحات
+### 1. حذف `getCoverBlurUrl` من `src/lib/bunny.ts` (dead code)
 
-| الملف | قبل | بعد |
-|-------|-----|-----|
-| `src/pages/WhatsAppOrders.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useOrderMutations"` |
-| `src/pages/DashboardOrders.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useOrderMutations"` |
-| `src/pages/BranchesManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useBranchMutations"` |
-| `src/pages/MenuManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useMenuMutations"` |
-| `src/pages/FooterManagement.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useRestaurantMutations"` |
-| `src/pages/RestaurantInfo.tsx` | `from "@/hooks/useAdminMutations"` | `from "@/hooks/admin-mutations/useRestaurantMutations"` |
+الدالة دي لسه موجودة بس مفيش حد بيستخدمها (إنت حذفت الـ blur cover من فترة).
 
-**أسماء الـ hooks المستوردة لا تتغيّر** — بس مسار الـ `from` بيتغيّر.
+**الملف**: `src/lib/bunny.ts` — حذف الأسطر 110-116:
+```ts
+// نسخة مصغرة جداً لخلفية الـ blur -- بعد التمويه لا فرق بصري
+export function getCoverBlurUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}width=80&quality=30`;
+}
+```
 
-#### 2) حذف ملف الـ shim نهائياً
-- حذف `src/hooks/useAdminMutations.ts` (4 أسطر)
+### 2. توحيد ارتفاع غلاف الـ Skeleton مع الصفحة الفعلية
 
-#### 3) (اختياري) تبسيط `index.ts`
-- نسيب `src/hooks/admin-mutations/index.ts` كـ barrel للاستخدام المستقبلي (مثلاً لو حد عاوز يستورد من `@/hooks/admin-mutations` مباشرةً). أو نحذفه كمان لو مش هنحتاجه.
-- **التوصية**: نسيبه. مفيد لو ظهر use case مستقبلي.
+عشان الانتقال من Skeleton للصفحة يبقى بدون أي shift.
 
----
+**الملف**: `src/components/restaurant/RestaurantSkeleton.tsx` — السطر 19:
+- **قبل**: `h-64 sm:h-72 md:h-96 lg:h-[500px]`
+- **بعد**: `h-56 sm:h-64 md:h-80 lg:h-96` (مطابق لـ `Restaurant.tsx:104`)
 
-### خطوات التنفيذ
+### 3. تنضيف `@ts-ignore` على `fetchpriority`
 
-1. تحديث الـ import في كل صفحة من الـ 6 (سطر واحد لكل ملف).
-2. حذف `src/hooks/useAdminMutations.ts`.
-3. تشغيل `npx tsc --noEmit` للتأكد من خلو المشروع من أي خطأ.
-4. التحقق إن مفيش ملف تاني في المشروع لسه بيستورد من المسار القديم (rg search).
+استبدال `// @ts-ignore` بطريقة أنظف باستخدام spread (TypeScript 5.5+ بقى يدعمه نيتيف لكن أنظف كده).
 
----
-
-### الفوائد بعد التنفيذ
-
-| البند | قبل | بعد |
-|-------|-----|-----|
-| **عدد محطات الـ import** | 3 ملفات (shim → barrel → الملف الفعلي) | 1 ملف مباشر |
-| **وضوح الـ domain** | غير واضح من سطر الـ import | واضح فوراً من المسار |
-| **حجم ملفات الـ wrapper** | shim (4 أسطر) + index (4 أسطر) = 8 أسطر زيادة | بس index (4 أسطر) |
-| **سهولة الـ refactor المستقبلي** | لو حذفت hook، صعب تتبّع مين بيستخدمه | المسار المباشر بيقول الـ domain فوراً |
+**الملف**: `src/pages/Restaurant.tsx` — السطر 107-108:
+- **قبل**: `loading="eager" // @ts-ignore` ثم `fetchpriority="high"`
+- **بعد**: حذف الكومنت ولفّ الـ attribute بـ spread نظيف
 
 ---
 
-### المخاطر
+## اللي **مش** هنعمله (وليه):
 
-**صفر**. الأسباب:
-- الـ exports من الملفات الجديدة موجودة فعلاً (تم التحقق).
-- TypeScript compiler هيمسك أي خطأ فوراً.
-- مفيش تغيير في الـ logic أو الـ runtime behavior.
-- مفيش تغيير في الـ React Query cache keys ولا الـ DB.
-
----
-
-### ما الذي **لن** يتغيّر
-
-- محتوى ملفات `admin-mutations/` (الكود الفعلي).
-- أسماء أو signatures الـ hooks.
-- React Query cache keys.
-- أي صفحة من غير الـ 6 المذكورة.
-- `src/hooks/admin-mutations/index.ts` (يفضل barrel للاستخدام المستقبلي).
+| | السبب |
+|---|---|
+| ❌ تعديل `index.html` (preload الخطوط) | شغال صح وbest practice |
+| ❌ تعديل `RestaurantSkeleton` ككل | بيقلل CLS فعلاً |
+| ❌ شيل `fetchpriority="high"` من غلاف المطعم | بيحسّن LCP فعلياً |
+| ❌ تعديل `loading="lazy"` على الصور | best practice |
 
 ---
 
-### الملفات المتأثرة
+## النتيجة المتوقعة
 
-| ملف | تغيير |
-|-----|-------|
-| `src/pages/WhatsAppOrders.tsx` | تعديل سطر import واحد |
-| `src/pages/DashboardOrders.tsx` | تعديل سطر import واحد |
-| `src/pages/BranchesManagement.tsx` | تعديل سطر import واحد |
-| `src/pages/MenuManagement.tsx` | تعديل سطر import واحد |
-| `src/pages/FooterManagement.tsx` | تعديل سطر import واحد |
-| `src/pages/RestaurantInfo.tsx` | تعديل سطر import واحد |
-| `src/hooks/useAdminMutations.ts` | **حذف نهائي** |
-
-**الإجمالي**: 6 أسطر تتعدّل + ملف واحد يتحذف.
+- ✅ صفر dead code
+- ✅ CLS أقرب لـ 0.00
+- ✅ كود نظيف بدون `@ts-ignore`
+- ✅ صفر تأثير سلبي

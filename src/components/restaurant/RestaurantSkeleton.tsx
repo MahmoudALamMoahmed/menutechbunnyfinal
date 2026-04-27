@@ -15,8 +15,8 @@ export default function RestaurantSkeleton() {
           </div>
         </div>
       </div>
-      {/* Skeleton Cover */}
-      <div className="w-full h-64 sm:h-72 md:h-96 lg:h-[500px] bg-muted animate-pulse" />
+      {/* Skeleton Cover - مطابق لارتفاع الغلاف الفعلي في Restaurant.tsx لتفادي CLS */}
+      <div className="w-full h-56 sm:h-64 md:h-80 lg:h-96 bg-muted animate-pulse" />
       {/* Skeleton Info */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
