@@ -11,7 +11,7 @@ import PageTransition from '@/components/PageTransition';
 import RestaurantSkeleton from '@/components/restaurant/RestaurantSkeleton';
 import CartDialog from '@/components/restaurant/CartDialog';
 import MenuGrid from '@/components/restaurant/MenuGrid';
-import { getLogoUrl, getCoverImageUrl, getCoverBlurUrl } from '@/lib/bunny';
+import { getLogoUrl, getCoverImageUrl } from '@/lib/bunny';
 import { usePublicRestaurantData } from '@/hooks/useRestaurantData';
 import { useRestaurantLimits } from '@/hooks/useSubscription';
 import { useCart } from '@/hooks/useCart';
@@ -48,19 +48,6 @@ export default function Restaurant() {
   }, [allMenuItems, limits?.max_items, activeCategory]);
   const extras = useMemo(() => limits?.max_extras != null ? allExtras.slice(0, limits.max_extras) : allExtras, [allExtras, limits?.max_extras]);
   const branches = useMemo(() => limits?.max_branches != null ? allBranches.slice(0, limits.max_branches) : allBranches, [allBranches, limits?.max_branches]);
-
-  // Preload blur cover
-  const coverBlurUrl = restaurant?.cover_image_url ? getCoverBlurUrl(restaurant.cover_image_url) : '';
-  useEffect(() => {
-    if (!coverBlurUrl) return;
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = coverBlurUrl;
-    link.setAttribute('fetchpriority', 'high');
-    document.head.appendChild(link);
-    return () => { link.remove(); };
-  }, [coverBlurUrl]);
 
   // Cart hook
   const { cart, addToCart, removeFromCart, getTotalPrice, clearCart } = useCart();
