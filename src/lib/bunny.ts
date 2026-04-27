@@ -107,14 +107,6 @@ export function getCoverImageUrl(url: string | null | undefined): string {
   return url || "";
 }
 
-// نسخة مصغرة جداً لخلفية الـ blur -- بعد التمويه لا فرق بصري
-export function getCoverBlurUrl(url: string | null | undefined): string {
-  if (!url) return "";
-  // Bunny Optimizer: append width param for a tiny placeholder
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}width=80&quality=30`;
-}
-
 export function getLogoUrl(url: string | null | undefined): string {
   return url || "";
 }
