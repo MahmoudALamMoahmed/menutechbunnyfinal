@@ -18,7 +18,7 @@ export default function RestaurantSkeleton() {
       {/* Skeleton Cover - مطابق تماماً لـ Restaurant.tsx (aspect 16:9 + max-w-4xl) لتفادي CLS */}
       <div className="w-full bg-gray-50">
         <div className="container mx-auto px-4 py-3">
-          <div className="w-full max-w-4xl mx-auto aspect-[16/9] rounded-2xl bg-muted animate-pulse" />
+          <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto aspect-[16/9] rounded-2xl bg-muted animate-pulse" />
         </div>
       </div>
       {/* Skeleton Info */}
