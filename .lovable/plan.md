@@ -1,57 +1,84 @@
-## الهدف
+# خطة تحسين غلاف المطعم
 
-الكود حالياً **سليم وطبيعي** والـ CLS = 0.01 ممتاز. الخطة دي مجرد **تنضيف تجميلي** لإزالة dead code وتقليل أي layout shift متبقي. **مفيش أي مخاطر** على الموقع.
+## ملخص الفحص (ما تم مراجعته)
 
----
 
-## التعديلات
+| المكان                                           | الحالة                              |
+| ------------------------------------------------ | ----------------------------------- |
+| `src/pages/Restaurant.tsx` (عرض الغلاف)          | ⚠️ فيه مشاكل بصرية                  |
+| `src/components/ImageUploader.tsx` (الرفع والقص) | ⚠️ تعارض في نسبة القص               |
+| `src/lib/bunny.ts` (الضغط)                       | ✅ سليم — WebP، 1600px، quality 0.82 |
+| `supabase/functions/bunny-upload/index.ts`       | ✅ سليم — auth + ownership check     |
+| `RestaurantSkeleton.tsx`                         | ✅ مطابق للأبعاد الحالية             |
 
-### 1. حذف `getCoverBlurUrl` من `src/lib/bunny.ts` (dead code)
 
-الدالة دي لسه موجودة بس مفيش حد بيستخدمها (إنت حذفت الـ blur cover من فترة).
+## المشاكل المكتشفة
 
-**الملف**: `src/lib/bunny.ts` — حذف الأسطر 110-116:
-```ts
-// نسخة مصغرة جداً لخلفية الـ blur -- بعد التمويه لا فرق بصري
-export function getCoverBlurUrl(url: string | null | undefined): string {
-  if (!url) return "";
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}width=80&quality=30`;
-}
-```
+**1. تعارض نسبة القص (الأهم):**
+داخل `ImageUploader.tsx`:
 
-### 2. توحيد ارتفاع غلاف الـ Skeleton مع الصفحة الفعلية
+- المعاينة على الشاشة: `aspect-[16/9]`
+- القص الفعلي المحفوظ: `16/7` (شريط عريض ومسطّح جداً)
 
-عشان الانتقال من Skeleton للصفحة يبقى بدون أي shift.
+النتيجة: صاحب المطعم يقص الصورة وهو يرى مستطيل 16:9 لكن المحفوظ فعلياً 16:7 مختلف تماماً → الصورة بتطلع مش زي ما توقع.
 
-**الملف**: `src/components/restaurant/RestaurantSkeleton.tsx` — السطر 19:
-- **قبل**: `h-64 sm:h-72 md:h-96 lg:h-[500px]`
-- **بعد**: `h-56 sm:h-64 md:h-80 lg:h-96` (مطابق لـ `Restaurant.tsx:104`)
+**2. عرض الغلاف في صفحة المطعم يبان صغير على الديسكتوب:**
 
-### 3. تنضيف `@ts-ignore` على `fetchpriority`
+- الحاوية ارتفاعها متدرج لكن `object-contain` مع `p-2` وحدود `border-4 border-white/20` على خلفية رمادية يخلي الصورة:
+  - عليها هوامش بيضاء فاضية كبيرة (لأن نسبة الصورة 16:7 لا تملأ حاوية تقريباً 16:9 على الموبايل و أعرض على الديسكتوب)
+  - الحدود البيضاء/20 على خلفية gray-50 شكلها غير واضح
+- على الموبايل الارتفاع `h-56` (224px) صغير نسبياً للغلاف.
 
-استبدال `// @ts-ignore` بطريقة أنظف باستخدام spread (TypeScript 5.5+ بقى يدعمه نيتيف لكن أنظف كده).
+**3. لا يستفاد من قدرة Bunny CDN على تقديم أحجام مختلفة:**
+الصورة المرفوعة 1600px تُقدَّم بنفس الحجم للموبايل والديسكتوب — هدر في الـ bandwidth و LCP أبطأ.
 
-**الملف**: `src/pages/Restaurant.tsx` — السطر 107-108:
-- **قبل**: `loading="eager" // @ts-ignore` ثم `fetchpriority="high"`
-- **بعد**: حذف الكومنت ولفّ الـ attribute بـ spread نظيف
+## الحل المقترح
 
----
+### أولاً: توحيد نسبة الغلاف على 16:9 (نسبة عالمية لأي غلاف/كافر)
 
-## اللي **مش** هنعمله (وليه):
+في `src/components/ImageUploader.tsx`:
 
-| | السبب |
-|---|---|
-| ❌ تعديل `index.html` (preload الخطوط) | شغال صح وbest practice |
-| ❌ تعديل `RestaurantSkeleton` ككل | بيقلل CLS فعلاً |
-| ❌ شيل `fetchpriority="high"` من غلاف المطعم | بيحسّن LCP فعلياً |
-| ❌ تعديل `loading="lazy"` على الصور | best practice |
+- تغيير `aspectRatioValues.cover` من `16/7` إلى `16/9` (يطابق المعاينة)
+- إبقاء `targetWidthValues.cover = 2400` كما هو (جودة عالية)
 
----
+### ثانياً: تحسين عرض الغلاف في `src/pages/Restaurant.tsx`
 
-## النتيجة المتوقعة
+- استخدام `object-cover` بدل `object-contain` → الغلاف يملأ الحاوية بالكامل بدون فراغات (هذه الطريقة المعتادة في كل SaaS مثل Linktree, Carrd, Square)
+- إزالة `p-2` والـ `border-4 border-white/20` (شكل قديم وغير ضروري)
+- ضبط ارتفاعات أنسب: `h-48 sm:h-64 md:h-72 lg:h-80` — متناسقة وغير مبالغ فيها
+- إبقاء `rounded-2xl` للشكل الجميل، مع container بـ padding بسيط
+- إبقاء `loading="eager"`, `fetchpriority="high"`, `decoding="sync"` (LCP)
 
-- ✅ صفر dead code
-- ✅ CLS أقرب لـ 0.00
-- ✅ كود نظيف بدون `@ts-ignore`
-- ✅ صفر تأثير سلبي
+### ثالثاً: تحديث `RestaurantSkeleton.tsx`
+
+- مطابقة الارتفاعات الجديدة `h-48 sm:h-64 md:h-72 lg:h-80` (الحفاظ على CLS = 0)
+
+### رابعاً (اختياري — استفادة من Bunny Image Optimizer)
+
+لو Bunny Image Optimizer مفعّل في لوحة التحكم (Pull Zone → Image Processing):
+
+- تعديل `getCoverImageUrl` ليضيف `?width=1600&optimizer=image` تلقائياً
+- استخدام `srcset` مع `sizes` لتقديم أحجام مختلفة (640w / 1024w / 1600w)
+
+> **ملاحظة:** هذه الخطوة تتطلب تأكيد إن Image Optimizer مفعل في Bunny dashboard. لو مش متأكد، نتجاهلها (الصور أصلاً WebP ومضغوطة جيداً).
+
+## تأثير على الـ Performance
+
+- **CLS:** يبقى 0 (تحديث Skeleton متزامن)
+- **LCP:** نفس السرعة أو أسرع لو فعّلنا الـ srcset
+- **بصرياً:** الغلاف يبان كامل ومحترف على الموبايل والديسكتوب بدون فراغات
+
+## الملفات اللي هتتعدل
+
+1. `src/components/ImageUploader.tsx` — سطر واحد (نسبة القص)
+2. `src/pages/Restaurant.tsx` — جزء الكافر (سطور 104-117)
+3. `src/components/restaurant/RestaurantSkeleton.tsx` — سطر واحد (الارتفاعات)
+4. (اختياري) `src/lib/bunny.ts` — `getCoverImageUrl` + srcset
+
+## ملاحظة مهمة عن الصور القديمة
+
+الصور المرفوعة قبل التعديل بنسبة 16:7 ستظهر بنفس الـ `object-cover` الجديد، يعني هيتم قص بسيط من الأعلى/الأسفل. لو في صور قديمة مهمة، ينصح صاحب المطعم يعيد رفعها عشان تبان بنسبة 16:9 الكاملة.
+
+هل توافق على الخطة؟ ولو موافق، حابب نطبّق الخطوة الرابعة (Bunny Optimizer + srcset) ولا نأجلها؟  
+  
+أجل الخطوه رقم اربعه لإني مش مفعل Bunny Optimizer
