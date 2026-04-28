@@ -15,10 +15,10 @@ export default function RestaurantSkeleton() {
           </div>
         </div>
       </div>
-      {/* Skeleton Cover - مطابق لارتفاع الغلاف الفعلي في Restaurant.tsx لتفادي CLS */}
+      {/* Skeleton Cover - مطابق تماماً لـ Restaurant.tsx (aspect 16:9 + max-w-4xl) لتفادي CLS */}
       <div className="w-full bg-gray-50">
         <div className="container mx-auto px-4 py-3">
-          <div className="w-full h-48 sm:h-64 md:h-72 lg:h-80 rounded-2xl bg-muted animate-pulse" />
+          <div className="w-full max-w-4xl mx-auto aspect-[16/9] rounded-2xl bg-muted animate-pulse" />
         </div>
       </div>
       {/* Skeleton Info */}
