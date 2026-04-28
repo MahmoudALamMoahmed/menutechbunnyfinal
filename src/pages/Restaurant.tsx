@@ -101,19 +101,21 @@ export default function Restaurant() {
       </div>
 
       {/* Cover Image */}
-      <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
-        {restaurant.cover_image_url && (
-          <div className="relative w-full h-full flex items-center justify-center p-2">
-            <img
-              src={getCoverImageUrl(restaurant.cover_image_url)}
-              alt={restaurant.name}
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
-              loading="eager"
-              decoding="sync"
-              {...({ fetchpriority: 'high' } as { fetchpriority: 'high' })}
-            />
+      <div className="w-full bg-gray-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="relative w-full h-48 sm:h-64 md:h-72 lg:h-80 overflow-hidden rounded-2xl shadow-lg bg-muted">
+            {restaurant.cover_image_url && (
+              <img
+                src={getCoverImageUrl(restaurant.cover_image_url)}
+                alt={restaurant.name}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+                {...({ fetchpriority: 'high' } as { fetchpriority: 'high' })}
+              />
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Restaurant Info */}

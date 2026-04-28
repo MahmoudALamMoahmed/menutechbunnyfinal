@@ -50,7 +50,7 @@ export default function ImageUploader({
 
   const aspectRatioValues = {
     square: 1,
-    cover: 16 / 7,
+    cover: 16 / 9,
     logo: 1,
   };
 
