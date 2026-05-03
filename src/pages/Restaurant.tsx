@@ -103,7 +103,7 @@ export default function Restaurant() {
       {/* Cover Image - يحافظ على نسبة 16:9 الكاملة بدون قص على كل الشاشات */}
       <div className="w-full bg-gray-50">
         <div className="container mx-auto px-4 py-3">
-          <div className="relative w-full max-w-6xl mx-auto aspect-[16/9] lg:aspect-[21/8] overflow-hidden rounded-2xl shadow-lg bg-muted">
+          <div className="relative w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto aspect-[16/9] max-h-[420px] lg:max-h-[380px] overflow-hidden rounded-2xl shadow-lg bg-muted">
             {restaurant.cover_image_url && (
               <img
                 src={getCoverImageUrl(restaurant.cover_image_url)}
