@@ -11,6 +11,7 @@ export interface CartItem extends MenuItem {
   quantity: number;
   selectedSize?: Size;
   selectedExtras?: Extra[];
+  is_offer?: boolean;
 }
 
 // مفتاح فريد لتمييز عناصر السلة
