@@ -130,6 +130,7 @@ export default function MenuManagement() {
     });
   };
 
+  if (restaurantLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
