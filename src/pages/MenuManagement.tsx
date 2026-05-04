@@ -40,6 +40,7 @@ export default function MenuManagement() {
   const { data: menuItems = [], isLoading: itemsLoading } = useAdminMenuItems(restaurantId);
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
+  const { data: offers = [], isLoading: offersLoading } = useAdminOffers(restaurantId);
 
   const catLimits = useLimitsCheck(restaurantId, "categories", categories.length);
   const itemLimits = useLimitsCheck(restaurantId, "menu_items", menuItems.length);
@@ -50,7 +51,7 @@ export default function MenuManagement() {
   const frozenItemIds = new Set(limits?.max_items != null ? menuItems.slice(limits.max_items).map(i => i.id) : []);
   const frozenExtraIds = new Set(limits?.max_extras != null ? extras.slice(limits.max_extras).map(e => e.id) : []);
 
-  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
+  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading || offersLoading;
 
   const saveCategoryMut = useSaveCategory(restaurantId);
   const deleteCategoryMut = useDeleteCategory(restaurantId);
@@ -63,13 +64,16 @@ export default function MenuManagement() {
   const reorderCategoriesMut = useReorderCategories(restaurantId);
   const reorderItemsMut = useReorderMenuItems(restaurantId);
   const reorderExtrasMut = useReorderExtras(restaurantId);
+  const saveOfferMut = useSaveOffer(restaurantId);
+  const deleteOfferMut = useDeleteOffer(restaurantId);
+  const reorderOffersMut = useReorderOffers(restaurantId);
 
-  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
-  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
+  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending || saveOfferMut.isPending;
+  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending || deleteOfferMut.isPending;
 
   const [showSizesDialog, setShowSizesDialog] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "extra"; id: string; name: string }>({ open: false, type: "category", id: "", name: "" });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "extra" | "offer"; id: string; name: string; imagePublicId?: string | null }>({ open: false, type: "category", id: "", name: "" });
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
