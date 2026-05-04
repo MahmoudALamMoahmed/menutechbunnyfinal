@@ -26,6 +26,7 @@ export function usePublicRestaurantData(username: string | undefined) {
         extras: any[];
         branches: any[];
         delivery_areas: any[];
+        offers: any[];
       } | null;
     },
     enabled: !!username,
