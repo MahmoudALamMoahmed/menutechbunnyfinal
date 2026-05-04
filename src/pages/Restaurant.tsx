@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Settings, LayoutGrid, List, Facebook, Instagram, Building2 } from 'lucide-react';
+import { Home, Settings, LayoutGrid, List, Facebook, Instagram, Building2, Sparkles } from 'lucide-react';
 import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
@@ -11,6 +11,7 @@ import PageTransition from '@/components/PageTransition';
 import RestaurantSkeleton from '@/components/restaurant/RestaurantSkeleton';
 import CartDialog from '@/components/restaurant/CartDialog';
 import MenuGrid from '@/components/restaurant/MenuGrid';
+import OffersStrip from '@/components/restaurant/OffersStrip';
 import { getLogoUrl, getCoverImageUrl } from '@/lib/bunny';
 import { usePublicRestaurantData } from '@/hooks/useRestaurantData';
 import { useRestaurantLimits } from '@/hooks/useSubscription';
@@ -18,6 +19,26 @@ import { useCart } from '@/hooks/useCart';
 import type { Tables } from '@/integrations/supabase/types';
 
 type MenuItem = Tables<'menu_items'>;
+type Offer = Tables<'offers'>;
+
+// تحويل عرض إلى شكل MenuItem ليتعامل معه نفس Dialog/Cart
+// نستخدم prefix `offer:` على الـ id لتجنب التعارض مع أصناف موجودة
+function offerToMenuItem(offer: Offer): MenuItem {
+  return {
+    id: `offer:${offer.id}`,
+    restaurant_id: offer.restaurant_id,
+    name: offer.title,
+    description: offer.description,
+    price: offer.price,
+    image_url: offer.image_url,
+    image_public_id: offer.image_public_id,
+    category_id: null,
+    is_available: true,
+    display_order: offer.display_order,
+    created_at: offer.created_at,
+    updated_at: offer.updated_at,
+  };
+}
 
 export default function Restaurant() {
   const { username } = useParams<{ username: string }>();
@@ -34,6 +55,7 @@ export default function Restaurant() {
   const allExtras = publicData?.extras ?? [];
   const allBranches = publicData?.branches ?? [];
   const deliveryAreas = publicData?.delivery_areas ?? [];
+  const offers: Offer[] = publicData?.offers ?? [];
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { data: limits } = useRestaurantLimits(restaurantId);
