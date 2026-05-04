@@ -1,84 +1,115 @@
-# خطة تحسين غلاف المطعم
+# خطة إضافة العروض (Offers) للمطاعم
 
-## ملخص الفحص (ما تم مراجعته)
+## الفكرة العامة
 
+- العروض هتكون **منفصلة عن الأقسام** عشان نقدر نديها شكل مميز.
+- هتظهر في صفحة المطعم في **شريط مميز** فوق قائمة الأقسام مباشرة، وتحت الأيقونات (فيسبوك/إنستجرام/فروع).
+- على نفس الصف بتاع الأيقونات الاجتماعية (يمين) → نضيف **زر "العروض" بارز على الشمال** (زي ما طلبت).
+- العرض يضاف للسلة عادي زي أي صنف.
+- نوعين مدعومين: **خصم على صنف موجود**، أو **عرض/كومبو جديد مخصوص**.
+- بدون مدة (يفعّل/يوقف يدوياً).
 
-| المكان                                           | الحالة                              |
-| ------------------------------------------------ | ----------------------------------- |
-| `src/pages/Restaurant.tsx` (عرض الغلاف)          | ⚠️ فيه مشاكل بصرية                  |
-| `src/components/ImageUploader.tsx` (الرفع والقص) | ⚠️ تعارض في نسبة القص               |
-| `src/lib/bunny.ts` (الضغط)                       | ✅ سليم — WebP، 1600px، quality 0.82 |
-| `supabase/functions/bunny-upload/index.ts`       | ✅ سليم — auth + ownership check     |
-| `RestaurantSkeleton.tsx`                         | ✅ مطابق للأبعاد الحالية             |
+## التغييرات في قاعدة البيانات
 
+جدول جديد `offers`:
 
-## المشاكل المكتشفة
+```text
+offers
+├─ id              uuid (PK)
+├─ restaurant_id   uuid (NOT NULL)
+├─ title           text  (اسم العرض)
+├─ description     text  (وصف اختياري)
+├─ image_url       text  (صورة العرض - Bunny CDN)
+├─ image_public_id text
+├─ price           numeric (السعر بعد الخصم - السعر النهائي)
+├─ original_price  numeric (السعر قبل الخصم - اختياري للعرض البصري)
+├─ menu_item_id    uuid nullable (لو العرض مرتبط بصنف موجود)
+├─ is_active       boolean default true
+├─ display_order   integer default 0
+├─ created_at, updated_at
+```
 
-**1. تعارض نسبة القص (الأهم):**
-داخل `ImageUploader.tsx`:
+**RLS:**
 
-- المعاينة على الشاشة: `aspect-[16/9]`
-- القص الفعلي المحفوظ: `16/7` (شريط عريض ومسطّح جداً)
+- SELECT للجميع (true) — عشان صفحة المطعم العامة.
+- ALL لصاحب المطعم (`owner_id = auth.uid()`).
 
-النتيجة: صاحب المطعم يقص الصورة وهو يرى مستطيل 16:9 لكن المحفوظ فعلياً 16:7 مختلف تماماً → الصورة بتطلع مش زي ما توقع.
+**تعديل RPC `get_public_restaurant_data`:** نضيف `offers` للنتيجة عشان الصفحة العامة تجيب العروض في نفس الاستدعاء (نحافظ على الأداء، بدون طلبات إضافية).
 
-**2. عرض الغلاف في صفحة المطعم يبان صغير على الديسكتوب:**
+## التغييرات في الواجهة
 
-- الحاوية ارتفاعها متدرج لكن `object-contain` مع `p-2` وحدود `border-4 border-white/20` على خلفية رمادية يخلي الصورة:
-  - عليها هوامش بيضاء فاضية كبيرة (لأن نسبة الصورة 16:7 لا تملأ حاوية تقريباً 16:9 على الموبايل و أعرض على الديسكتوب)
-  - الحدود البيضاء/20 على خلفية gray-50 شكلها غير واضح
-- على الموبايل الارتفاع `h-56` (224px) صغير نسبياً للغلاف.
+### 1) صفحة المطعم `src/pages/Restaurant.tsx`
 
-**3. لا يستفاد من قدرة Bunny CDN على تقديم أحجام مختلفة:**
-الصورة المرفوعة 1600px تُقدَّم بنفس الحجم للموبايل والديسكتوب — هدر في الـ bandwidth و LCP أبطأ.
+- في الصف اللي فيه الأيقونات الاجتماعية، نضيف على **الشمال** زر "🔥 العروض" بتصميم جذاب:
+  - Gradient ناري (أحمر/برتقالي) مع animation خفيف (pulse/shine).
+  - Badge بعدد العروض النشطة.
+  - مخفي تماماً لو مفيش عروض (`offers.length === 0`).
+- لما يدوس على الزر، يفتح **Dialog** فيه شبكة العروض (كروت بصورة + سعر قبل/بعد + زر "أضف للسلة").
+- بديل/إضافة: قسم "العروض" يظهر برضو في نفس الصفحة فوق `MenuGrid` لو في عروض، بتصميم مميز (كروت أعرض، badge "خصم"، السعر القديم مشطوب).
+  - **القرار المقترح:** نخلي **الاتنين**: زر بارز فوق + شريط عروض مميز فوق `MenuGrid`. ده الأنسب تسويقياً.
+- عند الضغط على عرض، يفتح `ProductDetailsDialog` المعدّل ليتعامل مع العرض:
+  - لو مرتبط بـ `menu_item_id` → يستخدم نفس بيانات الصنف (sizes/extras) مع تطبيق سعر العرض.
+  - لو عرض مستقل → يضيف للسلة مباشرة بسعر العرض، بدون أحجام/إضافات.
 
-## الحل المقترح
+### 2) إدارة العروض
 
-### أولاً: توحيد نسبة الغلاف على 16:9 (نسبة عالمية لأي غلاف/كافر)
+- نضيف Section جديد في `src/pages/MenuManagement.tsx` اسمه "العروض" (بجانب الأقسام/الأصناف/الإضافات).
+- مكوّن جديد `src/components/menu-management/OffersSection.tsx` يدير CRUD + ترتيب (DnD) + رفع صورة عبر `ImageUploader` (نسبة 1:1 أو 4:3).
+- نموذج العرض يسمح:
+  - اختيار صنف موجود (dropdown اختياري) أو ترك فارغ لإنشاء عرض مستقل.
+  - تحديد السعر الجديد + (اختياري) السعر القديم للشطب.
+  - عنوان، وصف، صورة.
 
-في `src/components/ImageUploader.tsx`:
+### 3) Hooks جديدة
 
-- تغيير `aspectRatioValues.cover` من `16/7` إلى `16/9` (يطابق المعاينة)
-- إبقاء `targetWidthValues.cover = 2400` كما هو (جودة عالية)
+- `src/hooks/admin-mutations/useOfferMutations.ts`: useSaveOffer, useDeleteOffer, useReorderOffers.
+- في `useAdminData.ts`: `useAdminOffers(restaurantId)`.
+- `usePublicRestaurantData` تُحدَّث لتشمل `offers` (تعديل تلقائي بعد تعديل RPC).
 
-### ثانياً: تحسين عرض الغلاف في `src/pages/Restaurant.tsx`
+### 4) السلة `useCart`
 
-- استخدام `object-cover` بدل `object-contain` → الغلاف يملأ الحاوية بالكامل بدون فراغات (هذه الطريقة المعتادة في كل SaaS مثل Linktree, Carrd, Square)
-- إزالة `p-2` والـ `border-4 border-white/20` (شكل قديم وغير ضروري)
-- ضبط ارتفاعات أنسب: `h-48 sm:h-64 md:h-72 lg:h-80` — متناسقة وغير مبالغ فيها
-- إبقاء `rounded-2xl` للشكل الجميل، مع container بـ padding بسيط
-- إبقاء `loading="eager"`, `fetchpriority="high"`, `decoding="sync"` (LCP)
+- نضيف نوع item جديد فيه flag `is_offer` و `offer_id` عشان نمنع تعارض IDs لو عرض مرتبط بصنف موجود (نخزن المفتاح كـ `offer:{id}` بدل `{menu_item_id}`).
+- WhatsApp message generator يعرض اسم العرض + علامة "🔥 عرض".
 
-### ثالثاً: تحديث `RestaurantSkeleton.tsx`
+## ملفات هتتعدل/تتنشأ
 
-- مطابقة الارتفاعات الجديدة `h-48 sm:h-64 md:h-72 lg:h-80` (الحفاظ على CLS = 0)
+**ملفات جديدة:**
 
-### رابعاً (اختياري — استفادة من Bunny Image Optimizer)
+- `src/components/menu-management/OffersSection.tsx`
+- `src/components/restaurant/OffersStrip.tsx` (الشريط فوق القائمة)
+- `src/components/restaurant/OffersDialog.tsx` (Dialog كل العروض)
+- `src/hooks/admin-mutations/useOfferMutations.ts`
 
-لو Bunny Image Optimizer مفعّل في لوحة التحكم (Pull Zone → Image Processing):
+**ملفات هتتعدل:**
 
-- تعديل `getCoverImageUrl` ليضيف `?width=1600&optimizer=image` تلقائياً
-- استخدام `srcset` مع `sizes` لتقديم أحجام مختلفة (640w / 1024w / 1600w)
+- `src/pages/Restaurant.tsx` (زر العروض + الشريط)
+- `src/pages/MenuManagement.tsx` (إضافة OffersSection)
+- `src/hooks/useAdminData.ts` (useAdminOffers)
+- `src/hooks/admin-mutations/index.ts` (export)
+- `src/hooks/useCart.ts` (دعم العروض)
+- `src/components/ProductDetailsDialog.tsx` (دعم العروض)
+- `src/components/restaurant/CartDialog.tsx` / WhatsApp generator (تمييز العروض)
+- `src/components/restaurant/RestaurantSkeleton.tsx` (skeleton للشريط الجديد عشان CLS = 0)
 
-> **ملاحظة:** هذه الخطوة تتطلب تأكيد إن Image Optimizer مفعل في Bunny dashboard. لو مش متأكد، نتجاهلها (الصور أصلاً WebP ومضغوطة جيداً).
+## ملاحظات الأداء (LCP/CLS/INP)
 
-## تأثير على الـ Performance
+- نحافظ على `RestaurantSkeleton` متطابق مع الواجهة الفعلية (نضيف placeholder للزر والشريط بنفس الأبعاد).
+- صور العروض تستخدم `loading="lazy"` ماعدا اللي ظاهرة فوق الـ fold.
+- البيانات تجيب مع نفس الـ RPC → بدون round-trips إضافية.
 
-- **CLS:** يبقى 0 (تحديث Skeleton متزامن)
-- **LCP:** نفس السرعة أو أسرع لو فعّلنا الـ srcset
-- **بصرياً:** الغلاف يبان كامل ومحترف على الموبايل والديسكتوب بدون فراغات
+## خطوات التنفيذ بالترتيب
 
-## الملفات اللي هتتعدل
+1. Migration: إنشاء جدول `offers` + RLS + تعديل RPC `get_public_restaurant_data`.
+2. Hooks (admin + public read).
+3. شاشة إدارة العروض في `MenuManagement`.
+4. الزر المميز + شريط العروض في صفحة المطعم.
+5. Dialog تفاصيل العرض + تكامل السلة.
+6. تحديث Skeleton + اختبار CLS.
 
-1. `src/components/ImageUploader.tsx` — سطر واحد (نسبة القص)
-2. `src/pages/Restaurant.tsx` — جزء الكافر (سطور 104-117)
-3. `src/components/restaurant/RestaurantSkeleton.tsx` — سطر واحد (الارتفاعات)
-4. (اختياري) `src/lib/bunny.ts` — `getCoverImageUrl` + srcset
-
-## ملاحظة مهمة عن الصور القديمة
-
-الصور المرفوعة قبل التعديل بنسبة 16:7 ستظهر بنفس الـ `object-cover` الجديد، يعني هيتم قص بسيط من الأعلى/الأسفل. لو في صور قديمة مهمة، ينصح صاحب المطعم يعيد رفعها عشان تبان بنسبة 16:9 الكاملة.
-
-هل توافق على الخطة؟ ولو موافق، حابب نطبّق الخطوة الرابعة (Bunny Optimizer + srcset) ولا نأجلها؟  
+تحب أبدأ التنفيذ كده ولا عايز تعديل في حاجة (مثلاً تختار: زر بس بدون شريط، أو شريط بس بدون زر)؟  
   
-أجل الخطوه رقم اربعه لإني مش مفعل Bunny Optimizer
+ملحوظات مهمه :  
+تمام نفذ الخطة ولكن انا عايزك تستخدم best practice  
+وعايز الكود يكون متماشي ومرتب زي باقي اكواد المشروع  
+واعمل حساب clean code + scalable للمشروع  
+لو تقدر تنفذ migrations من غير ما تاخد موافقتي اعمل كدا انا موافق
