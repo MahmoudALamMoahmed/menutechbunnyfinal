@@ -4,18 +4,20 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras } from "@/hooks/useAdminData";
+import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras, useAdminOffers } from "@/hooks/useAdminData";
 import {
   useSaveCategory, useDeleteCategory, useSaveMenuItem, useDeleteMenuItem,
   useSaveSize, useDeleteSize, useSaveExtra, useDeleteExtra,
   useReorderCategories, useReorderMenuItems, useReorderExtras,
-} from "@/hooks/admin-mutations/useMenuMutations";
+  useSaveOffer, useDeleteOffer, useReorderOffers,
+} from "@/hooks/admin-mutations";
 import { useLimitsCheck } from "@/hooks/useLimitsCheck";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import CategorySection from "@/components/menu-management/CategorySection";
 import MenuItemsSection from "@/components/menu-management/MenuItemsSection";
 import ExtrasSection from "@/components/menu-management/ExtrasSection";
+import OffersSection from "@/components/menu-management/OffersSection";
 import SizesDialog from "@/components/menu-management/SizesDialog";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
@@ -38,6 +40,7 @@ export default function MenuManagement() {
   const { data: menuItems = [], isLoading: itemsLoading } = useAdminMenuItems(restaurantId);
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
+  const { data: offers = [], isLoading: offersLoading } = useAdminOffers(restaurantId);
 
   const catLimits = useLimitsCheck(restaurantId, "categories", categories.length);
   const itemLimits = useLimitsCheck(restaurantId, "menu_items", menuItems.length);
@@ -48,7 +51,7 @@ export default function MenuManagement() {
   const frozenItemIds = new Set(limits?.max_items != null ? menuItems.slice(limits.max_items).map(i => i.id) : []);
   const frozenExtraIds = new Set(limits?.max_extras != null ? extras.slice(limits.max_extras).map(e => e.id) : []);
 
-  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
+  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading || offersLoading;
 
   const saveCategoryMut = useSaveCategory(restaurantId);
   const deleteCategoryMut = useDeleteCategory(restaurantId);
@@ -61,13 +64,16 @@ export default function MenuManagement() {
   const reorderCategoriesMut = useReorderCategories(restaurantId);
   const reorderItemsMut = useReorderMenuItems(restaurantId);
   const reorderExtrasMut = useReorderExtras(restaurantId);
+  const saveOfferMut = useSaveOffer(restaurantId);
+  const deleteOfferMut = useDeleteOffer(restaurantId);
+  const reorderOffersMut = useReorderOffers(restaurantId);
 
-  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
-  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
+  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending || saveOfferMut.isPending;
+  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending || deleteOfferMut.isPending;
 
   const [showSizesDialog, setShowSizesDialog] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "extra"; id: string; name: string }>({ open: false, type: "category", id: "", name: "" });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "extra" | "offer"; id: string; name: string; imagePublicId?: string | null }>({ open: false, type: "category", id: "", name: "" });
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
@@ -107,6 +113,19 @@ export default function MenuManagement() {
     queryClient.setQueryData(["admin_extras", restaurantId], newExtras);
     reorderExtrasMut.mutate(newExtras.map((extra, index) => ({ id: extra.id, display_order: index })), {
       onSuccess: () => toast({ title: "تم الترتيب", description: "تم تحديث ترتيب الإضافات" }),
+      onError: () => toast({ title: "خطأ", description: "حدث خطأ أثناء تحديث الترتيب", variant: "destructive" }),
+    });
+  };
+
+  const handleOfferDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = offers.findIndex(o => o.id === active.id);
+    const newIndex = offers.findIndex(o => o.id === over.id);
+    const newOffers = arrayMove(offers, oldIndex, newIndex);
+    queryClient.setQueryData(["admin_offers", restaurantId], newOffers);
+    reorderOffersMut.mutate(newOffers.map((o, index) => ({ id: o.id, display_order: index })), {
+      onSuccess: () => toast({ title: "تم الترتيب", description: "تم تحديث ترتيب العروض" }),
       onError: () => toast({ title: "خطأ", description: "حدث خطأ أثناء تحديث الترتيب", variant: "destructive" }),
     });
   };
@@ -190,6 +209,18 @@ export default function MenuManagement() {
             onDelete={(id, name) => setDeleteDialog({ open: true, type: "extra", id, name })}
             onDragEnd={handleExtraDragEnd}
           />
+
+          <OffersSection
+            offers={offers}
+            menuItems={menuItems}
+            sensors={sensors}
+            saving={saving}
+            restaurantId={restaurant.id}
+            restaurantUsername={restaurant.username}
+            onSave={(data) => saveOfferMut.mutate(data)}
+            onDelete={(id, name, imagePublicId) => setDeleteDialog({ open: true, type: "offer", id, name, imagePublicId })}
+            onDragEnd={handleOfferDragEnd}
+          />
         </div>
       </div>
 
@@ -216,9 +247,10 @@ export default function MenuManagement() {
             }
             case "size": deleteSizeMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
             case "extra": deleteExtraMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
+            case "offer": deleteOfferMut.mutate({ offerId: deleteDialog.id, imagePublicId: deleteDialog.imagePublicId }, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
           }
         }}
-        title={deleteDialog.type === "category" ? "حذف القسم" : deleteDialog.type === "item" ? "حذف الصنف" : deleteDialog.type === "size" ? "حذف الحجم" : "حذف الإضافة"}
+        title={deleteDialog.type === "category" ? "حذف القسم" : deleteDialog.type === "item" ? "حذف الصنف" : deleteDialog.type === "size" ? "حذف الحجم" : deleteDialog.type === "offer" ? "حذف العرض" : "حذف الإضافة"}
         description={`هل أنت متأكد من حذف "${deleteDialog.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
         isLoading={isDeleting}
       />

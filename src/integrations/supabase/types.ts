@@ -395,6 +395,54 @@ export type Database = {
           },
         ]
       }
+      offers: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_public_id: string | null
+          image_url: string | null
+          is_active: boolean
+          menu_item_id: string | null
+          original_price: number | null
+          price: number
+          restaurant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_public_id?: string | null
+          image_url?: string | null
+          is_active?: boolean
+          menu_item_id?: string | null
+          original_price?: number | null
+          price?: number
+          restaurant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_public_id?: string | null
+          image_url?: string | null
+          is_active?: boolean
+          menu_item_id?: string | null
+          original_price?: number | null
+          price?: number
+          restaurant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           branch_id: string | null

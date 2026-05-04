@@ -102,6 +102,25 @@ export function useAdminExtras(restaurantId: string | undefined) {
   });
 }
 
+export function useAdminOffers(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin_offers', restaurantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('restaurant_id', restaurantId!)
+        .order('display_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!restaurantId,
+    staleTime: ADMIN_STALE,
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useAdminBranches(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_branches', restaurantId],

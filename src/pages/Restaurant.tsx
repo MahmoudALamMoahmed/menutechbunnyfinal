@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Settings, LayoutGrid, List, Facebook, Instagram, Building2 } from 'lucide-react';
+import { Home, Settings, LayoutGrid, List, Facebook, Instagram, Building2, Sparkles } from 'lucide-react';
 import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
@@ -11,6 +11,7 @@ import PageTransition from '@/components/PageTransition';
 import RestaurantSkeleton from '@/components/restaurant/RestaurantSkeleton';
 import CartDialog from '@/components/restaurant/CartDialog';
 import MenuGrid from '@/components/restaurant/MenuGrid';
+import OffersStrip from '@/components/restaurant/OffersStrip';
 import { getLogoUrl, getCoverImageUrl } from '@/lib/bunny';
 import { usePublicRestaurantData } from '@/hooks/useRestaurantData';
 import { useRestaurantLimits } from '@/hooks/useSubscription';
@@ -18,6 +19,26 @@ import { useCart } from '@/hooks/useCart';
 import type { Tables } from '@/integrations/supabase/types';
 
 type MenuItem = Tables<'menu_items'>;
+type Offer = Tables<'offers'>;
+
+// تحويل عرض إلى شكل MenuItem ليتعامل معه نفس Dialog/Cart
+// نستخدم prefix `offer:` على الـ id لتجنب التعارض مع أصناف موجودة
+function offerToMenuItem(offer: Offer): MenuItem {
+  return {
+    id: `offer:${offer.id}`,
+    restaurant_id: offer.restaurant_id,
+    name: offer.title,
+    description: offer.description,
+    price: offer.price,
+    image_url: offer.image_url,
+    image_public_id: offer.image_public_id,
+    category_id: null,
+    is_available: true,
+    display_order: offer.display_order,
+    created_at: offer.created_at,
+    updated_at: offer.updated_at,
+  };
+}
 
 export default function Restaurant() {
   const { username } = useParams<{ username: string }>();
@@ -34,6 +55,7 @@ export default function Restaurant() {
   const allExtras = publicData?.extras ?? [];
   const allBranches = publicData?.branches ?? [];
   const deliveryAreas = publicData?.delivery_areas ?? [];
+  const offers: Offer[] = publicData?.offers ?? [];
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { data: limits } = useRestaurantLimits(restaurantId);
@@ -63,6 +85,32 @@ export default function Restaurant() {
     setSelectedProduct(item);
     setShowProductDialog(true);
   };
+
+  // فتح عرض - يحوّله إلى MenuItem ويستخدم نفس Dialog
+  const openOfferDialog = useCallback((offer: Offer) => {
+    // عرض مرتبط بصنف موجود → استخدم الصنف الأصلي (للأحجام/الإضافات) لكن بسعر العرض واسم وصورة العرض
+    if (offer.menu_item_id) {
+      const linked = allMenuItems.find(m => m.id === offer.menu_item_id);
+      if (linked) {
+        setSelectedProduct({
+          ...linked,
+          name: offer.title,
+          description: offer.description ?? linked.description,
+          image_url: offer.image_url ?? linked.image_url,
+          price: offer.price,
+        });
+        setShowProductDialog(true);
+        return;
+      }
+    }
+    // عرض مستقل → بدون أحجام/إضافات
+    setSelectedProduct(offerToMenuItem(offer));
+    setShowProductDialog(true);
+  }, [allMenuItems]);
+
+  const scrollToOffers = useCallback(() => {
+    document.getElementById('offers-strip')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   if (loadingPublicData) return <RestaurantSkeleton />;
 
@@ -118,10 +166,11 @@ export default function Restaurant() {
         </div>
       </div>
 
-      {/* Restaurant Info */}
+      {/* Restaurant Info - أيقونات سوشيال + زر العروض */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
+            {/* يمين: أيقونات الفروع والسوشيال */}
             <div className="flex items-center gap-3">
               <BranchesDialog branches={branches} trigger={
                 <button className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 text-white rounded-xl flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300">
@@ -139,8 +188,29 @@ export default function Restaurant() {
                 </a>
               )}
             </div>
+
+            {/* شمال: زر العروض المميز - يظهر فقط لو في عروض */}
+            {offers.length > 0 && (
+              <button
+                onClick={scrollToOffers}
+                className="group relative flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-orange-500 via-rose-500 to-red-500 text-white font-bold text-sm shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:scale-105 active:scale-95 transition-all duration-300 overflow-hidden"
+                aria-label={`عرض ${offers.length} عروض مميزة`}
+              >
+                <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span>العروض</span>
+                <span className="bg-white text-rose-600 text-xs px-1.5 py-0.5 rounded-full min-w-5 text-center">
+                  {offers.length}
+                </span>
+              </button>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Offers Strip - شريط العروض المميز */}
+      <div id="offers-strip">
+        <OffersStrip offers={offers} onOfferClick={openOfferDialog} />
       </div>
 
       {/* Categories */}

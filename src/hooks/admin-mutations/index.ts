@@ -3,3 +3,4 @@ export * from './useMenuMutations';
 export * from './useBranchMutations';
 export * from './useOrderMutations';
 export * from './useRestaurantMutations';
+export * from './useOfferMutations';
