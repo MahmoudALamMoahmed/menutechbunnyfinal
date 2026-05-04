@@ -86,6 +86,32 @@ export default function Restaurant() {
     setShowProductDialog(true);
   };
 
+  // فتح عرض - يحوّله إلى MenuItem ويستخدم نفس Dialog
+  const openOfferDialog = useCallback((offer: Offer) => {
+    // لو العرض مرتبط بصنف موجود، نستخدم بياناته (للـ sizes/extras) لكن بسعر العرض واسم وصورة العرض
+    if (offer.menu_item_id) {
+      const linked = allMenuItems.find(m => m.id === offer.menu_item_id);
+      if (linked) {
+        setSelectedProduct({
+          ...linked,
+          id: `offer:${offer.id}`,
+          name: offer.title,
+          description: offer.description ?? linked.description,
+          image_url: offer.image_url ?? linked.image_url,
+          price: offer.price,
+        });
+        setShowProductDialog(true);
+        return;
+      }
+    }
+    setSelectedProduct(offerToMenuItem(offer));
+    setShowProductDialog(true);
+  }, [allMenuItems]);
+
+  const scrollToOffers = useCallback(() => {
+    document.getElementById('offers-strip')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   if (loadingPublicData) return <RestaurantSkeleton />;
 
   if (!restaurant) {
@@ -140,10 +166,11 @@ export default function Restaurant() {
         </div>
       </div>
 
-      {/* Restaurant Info */}
+      {/* Restaurant Info - أيقونات سوشيال + زر العروض */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center justify-between gap-4 text-sm text-gray-600">
+            {/* يمين: أيقونات الفروع والسوشيال */}
             <div className="flex items-center gap-3">
               <BranchesDialog branches={branches} trigger={
                 <button className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 text-white rounded-xl flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300">
@@ -161,8 +188,29 @@ export default function Restaurant() {
                 </a>
               )}
             </div>
+
+            {/* شمال: زر العروض المميز - يظهر فقط لو في عروض */}
+            {offers.length > 0 && (
+              <button
+                onClick={scrollToOffers}
+                className="group relative flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-orange-500 via-rose-500 to-red-500 text-white font-bold text-sm shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:scale-105 active:scale-95 transition-all duration-300 overflow-hidden"
+                aria-label={`عرض ${offers.length} عروض مميزة`}
+              >
+                <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span>العروض</span>
+                <span className="bg-white text-rose-600 text-xs px-1.5 py-0.5 rounded-full min-w-5 text-center">
+                  {offers.length}
+                </span>
+              </button>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Offers Strip - شريط العروض المميز */}
+      <div id="offers-strip">
+        <OffersStrip offers={offers} onOfferClick={openOfferDialog} />
       </div>
 
       {/* Categories */}
