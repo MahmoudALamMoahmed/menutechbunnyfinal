@@ -117,7 +117,19 @@ export default function MenuManagement() {
     });
   };
 
-  if (restaurantLoading || dataLoading) {
+  const handleOfferDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = offers.findIndex(o => o.id === active.id);
+    const newIndex = offers.findIndex(o => o.id === over.id);
+    const newOffers = arrayMove(offers, oldIndex, newIndex);
+    queryClient.setQueryData(["admin_offers", restaurantId], newOffers);
+    reorderOffersMut.mutate(newOffers.map((o, index) => ({ id: o.id, display_order: index })), {
+      onSuccess: () => toast({ title: "تم الترتيب", description: "تم تحديث ترتيب العروض" }),
+      onError: () => toast({ title: "خطأ", description: "حدث خطأ أثناء تحديث الترتيب", variant: "destructive" }),
+    });
+  };
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -196,6 +208,18 @@ export default function MenuManagement() {
             onDelete={(id, name) => setDeleteDialog({ open: true, type: "extra", id, name })}
             onDragEnd={handleExtraDragEnd}
           />
+
+          <OffersSection
+            offers={offers}
+            menuItems={menuItems}
+            sensors={sensors}
+            saving={saving}
+            restaurantId={restaurant.id}
+            restaurantUsername={restaurant.username}
+            onSave={(data) => saveOfferMut.mutate(data)}
+            onDelete={(id, name, imagePublicId) => setDeleteDialog({ open: true, type: "offer", id, name, imagePublicId })}
+            onDragEnd={handleOfferDragEnd}
+          />
         </div>
       </div>
 
@@ -222,9 +246,10 @@ export default function MenuManagement() {
             }
             case "size": deleteSizeMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
             case "extra": deleteExtraMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
+            case "offer": deleteOfferMut.mutate({ offerId: deleteDialog.id, imagePublicId: deleteDialog.imagePublicId }, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
           }
         }}
-        title={deleteDialog.type === "category" ? "حذف القسم" : deleteDialog.type === "item" ? "حذف الصنف" : deleteDialog.type === "size" ? "حذف الحجم" : "حذف الإضافة"}
+        title={deleteDialog.type === "category" ? "حذف القسم" : deleteDialog.type === "item" ? "حذف الصنف" : deleteDialog.type === "size" ? "حذف الحجم" : deleteDialog.type === "offer" ? "حذف العرض" : "حذف الإضافة"}
         description={`هل أنت متأكد من حذف "${deleteDialog.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
         isLoading={isDeleting}
       />
