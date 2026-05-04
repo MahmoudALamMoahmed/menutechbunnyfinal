@@ -88,13 +88,12 @@ export default function Restaurant() {
 
   // فتح عرض - يحوّله إلى MenuItem ويستخدم نفس Dialog
   const openOfferDialog = useCallback((offer: Offer) => {
-    // لو العرض مرتبط بصنف موجود، نستخدم بياناته (للـ sizes/extras) لكن بسعر العرض واسم وصورة العرض
+    // عرض مرتبط بصنف موجود → استخدم الصنف الأصلي (للأحجام/الإضافات) لكن بسعر العرض واسم وصورة العرض
     if (offer.menu_item_id) {
       const linked = allMenuItems.find(m => m.id === offer.menu_item_id);
       if (linked) {
         setSelectedProduct({
           ...linked,
-          id: `offer:${offer.id}`,
           name: offer.title,
           description: offer.description ?? linked.description,
           image_url: offer.image_url ?? linked.image_url,
@@ -104,6 +103,7 @@ export default function Restaurant() {
         return;
       }
     }
+    // عرض مستقل → بدون أحجام/إضافات
     setSelectedProduct(offerToMenuItem(offer));
     setShowProductDialog(true);
   }, [allMenuItems]);
