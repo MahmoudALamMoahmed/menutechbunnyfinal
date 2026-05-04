@@ -4,18 +4,20 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras } from "@/hooks/useAdminData";
+import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras, useAdminOffers } from "@/hooks/useAdminData";
 import {
   useSaveCategory, useDeleteCategory, useSaveMenuItem, useDeleteMenuItem,
   useSaveSize, useDeleteSize, useSaveExtra, useDeleteExtra,
   useReorderCategories, useReorderMenuItems, useReorderExtras,
-} from "@/hooks/admin-mutations/useMenuMutations";
+  useSaveOffer, useDeleteOffer, useReorderOffers,
+} from "@/hooks/admin-mutations";
 import { useLimitsCheck } from "@/hooks/useLimitsCheck";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import CategorySection from "@/components/menu-management/CategorySection";
 import MenuItemsSection from "@/components/menu-management/MenuItemsSection";
 import ExtrasSection from "@/components/menu-management/ExtrasSection";
+import OffersSection from "@/components/menu-management/OffersSection";
 import SizesDialog from "@/components/menu-management/SizesDialog";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
