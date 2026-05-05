@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Settings, LayoutGrid, List, Facebook, Instagram, Building2, Sparkles } from 'lucide-react';
+import { UtensilsCrossed, Settings, LayoutGrid, List, Facebook, Instagram, Building2, Sparkles } from 'lucide-react';
 import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
@@ -112,6 +112,24 @@ export default function Restaurant() {
     document.getElementById('offers-strip')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
+  // Scroll spy: تفعيل زر المنيو فقط عند رؤية قسم المنيو
+  const [menuActive, setMenuActive] = useState(false);
+  const menuSectionRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = menuSectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach(e => setMenuActive(e.isIntersecting)),
+      { rootMargin: '-20% 0px -40% 0px', threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [restaurant?.id]);
+
+  const scrollToMenu = useCallback(() => {
+    document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   if (loadingPublicData) return <RestaurantSkeleton />;
 
   if (!restaurant) {
@@ -213,43 +231,46 @@ export default function Restaurant() {
         <OffersStrip offers={offers} onOfferClick={openOfferDialog} />
       </div>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 scroll-smooth">
-                <Button variant={activeCategory === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory('all')}>الكل</Button>
-                {categories.map(cat => (
-                  <Button key={cat.id} variant={activeCategory === cat.id ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory(cat.id)}>{cat.name}</Button>
-                ))}
+      {/* Menu Section (categories + toggle + items) */}
+      <div id="menu-section" ref={menuSectionRef} className="scroll-mt-4">
+        {/* Categories */}
+        {categories.length > 0 && (
+          <div className="bg-white border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 scroll-smooth">
+                  <Button variant={activeCategory === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory('all')}>الكل</Button>
+                  {categories.map(cat => (
+                    <Button key={cat.id} variant={activeCategory === cat.id ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory(cat.id)}>{cat.name}</Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+        )}
+
+        {/* View Toggle */}
+        <div className="container px-4 flex justify-end gap-2 py-4">
+          <button onClick={() => setViewType('list')} className={`p-3 border rounded-md transition ${viewType === 'list' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
+            <List className="w-5 h-5 stroke-[1.5]" />
+          </button>
+          <button onClick={() => setViewType('grid')} className={`p-3 border rounded-md transition ${viewType === 'grid' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
+            <LayoutGrid className="w-5 h-5 stroke-[1.5]" />
+          </button>
         </div>
-      )}
 
-      {/* View Toggle */}
-      <div className="container px-4 flex justify-end gap-2 py-4">
-        <button onClick={() => setViewType('list')} className={`p-3 border rounded-md transition ${viewType === 'list' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
-          <List className="w-5 h-5 stroke-[1.5]" />
-        </button>
-        <button onClick={() => setViewType('grid')} className={`p-3 border rounded-md transition ${viewType === 'grid' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
-          <LayoutGrid className="w-5 h-5 stroke-[1.5]" />
-        </button>
-      </div>
-
-      {/* Menu Items */}
-      <div id="menu-grid" className="container mx-auto px-4 pb-32 scroll-mt-4">
-        <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
+        {/* Menu Items */}
+        <div id="menu-grid" className="container mx-auto px-4 pb-32">
+          <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
+        </div>
       </div>
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-center gap-10">
-            <button onClick={() => document.getElementById('menu-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex flex-col items-center gap-0.5 text-xs transition text-gray-600 hover:text-red-500">
-              <Home className="w-6 h-6" />
+            <button onClick={scrollToMenu} className={`flex flex-col items-center gap-0.5 text-xs transition hover:text-red-500 ${menuActive ? 'text-red-600' : 'text-gray-600'}`}>
+              <UtensilsCrossed className="w-6 h-6" />
               <span>المنيو</span>
             </button>
             <BranchesDialog branches={branches} trigger={
