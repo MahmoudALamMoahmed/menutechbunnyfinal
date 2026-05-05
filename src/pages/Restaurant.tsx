@@ -240,7 +240,7 @@ export default function Restaurant() {
       </div>
 
       {/* Menu Items */}
-      <div className="container mx-auto px-4 pb-32">
+      <div id="menu-grid" className="container mx-auto px-4 pb-32 scroll-mt-4">
         <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
       </div>
 
