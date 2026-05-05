@@ -231,35 +231,38 @@ export default function Restaurant() {
         <OffersStrip offers={offers} onOfferClick={openOfferDialog} />
       </div>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 scroll-smooth">
-                <Button variant={activeCategory === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory('all')}>الكل</Button>
-                {categories.map(cat => (
-                  <Button key={cat.id} variant={activeCategory === cat.id ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory(cat.id)}>{cat.name}</Button>
-                ))}
+      {/* Menu Section (categories + toggle + items) */}
+      <div id="menu-section" ref={menuSectionRef} className="scroll-mt-4">
+        {/* Categories */}
+        {categories.length > 0 && (
+          <div className="bg-white border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 scroll-smooth">
+                  <Button variant={activeCategory === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory('all')}>الكل</Button>
+                  {categories.map(cat => (
+                    <Button key={cat.id} variant={activeCategory === cat.id ? 'default' : 'outline'} size="sm" onClick={() => setActiveCategory(cat.id)}>{cat.name}</Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+        )}
+
+        {/* View Toggle */}
+        <div className="container px-4 flex justify-end gap-2 py-4">
+          <button onClick={() => setViewType('list')} className={`p-3 border rounded-md transition ${viewType === 'list' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
+            <List className="w-5 h-5 stroke-[1.5]" />
+          </button>
+          <button onClick={() => setViewType('grid')} className={`p-3 border rounded-md transition ${viewType === 'grid' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
+            <LayoutGrid className="w-5 h-5 stroke-[1.5]" />
+          </button>
         </div>
-      )}
 
-      {/* View Toggle */}
-      <div className="container px-4 flex justify-end gap-2 py-4">
-        <button onClick={() => setViewType('list')} className={`p-3 border rounded-md transition ${viewType === 'list' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
-          <List className="w-5 h-5 stroke-[1.5]" />
-        </button>
-        <button onClick={() => setViewType('grid')} className={`p-3 border rounded-md transition ${viewType === 'grid' ? 'bg-primary text-white border-black' : 'bg-white text-black border-black'}`}>
-          <LayoutGrid className="w-5 h-5 stroke-[1.5]" />
-        </button>
-      </div>
-
-      {/* Menu Items */}
-      <div id="menu-grid" className="container mx-auto px-4 pb-32 scroll-mt-4">
-        <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
+        {/* Menu Items */}
+        <div id="menu-grid" className="container mx-auto px-4 pb-32">
+          <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
+        </div>
       </div>
 
       {/* Bottom Navigation */}
