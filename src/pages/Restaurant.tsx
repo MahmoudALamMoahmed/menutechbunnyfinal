@@ -240,7 +240,7 @@ export default function Restaurant() {
       </div>
 
       {/* Menu Items */}
-      <div className="container mx-auto px-4 pb-32">
+      <div id="menu-grid" className="container mx-auto px-4 pb-32 scroll-mt-4">
         <MenuGrid items={filteredMenuItems} viewType={viewType} onItemClick={openProductDialog} />
       </div>
 
@@ -248,9 +248,9 @@ export default function Restaurant() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-center gap-10">
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center gap-0.5 text-xs transition text-red-600 font-bold hover:text-red-500">
+            <button onClick={() => document.getElementById('menu-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex flex-col items-center gap-0.5 text-xs transition text-gray-600 hover:text-red-500">
               <Home className="w-6 h-6" />
-              <span>الرئيسية</span>
+              <span>المنيو</span>
             </button>
             <BranchesDialog branches={branches} trigger={
               <button className="flex flex-col items-center gap-0.5 text-xs transition text-gray-600 hover:text-red-500">
