@@ -112,6 +112,24 @@ export default function Restaurant() {
     document.getElementById('offers-strip')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
+  // Scroll spy: تفعيل زر المنيو فقط عند رؤية قسم المنيو
+  const [menuActive, setMenuActive] = useState(false);
+  const menuSectionRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = menuSectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach(e => setMenuActive(e.isIntersecting)),
+      { rootMargin: '-20% 0px -40% 0px', threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [restaurant?.id]);
+
+  const scrollToMenu = useCallback(() => {
+    document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   if (loadingPublicData) return <RestaurantSkeleton />;
 
   if (!restaurant) {
