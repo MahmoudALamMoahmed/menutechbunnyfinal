@@ -269,8 +269,8 @@ export default function Restaurant() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-center gap-10">
-            <button onClick={() => document.getElementById('menu-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="flex flex-col items-center gap-0.5 text-xs transition text-gray-600 hover:text-red-500">
-              <Home className="w-6 h-6" />
+            <button onClick={scrollToMenu} className={`flex flex-col items-center gap-0.5 text-xs transition hover:text-red-500 ${menuActive ? 'text-red-600' : 'text-gray-600'}`}>
+              <UtensilsCrossed className="w-6 h-6" />
               <span>المنيو</span>
             </button>
             <BranchesDialog branches={branches} trigger={
