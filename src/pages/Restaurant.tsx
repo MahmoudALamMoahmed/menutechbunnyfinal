@@ -7,7 +7,6 @@ import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
-import PageTransition from '@/components/PageTransition';
 import RestaurantSkeleton from '@/components/restaurant/RestaurantSkeleton';
 import CartDialog from '@/components/restaurant/CartDialog';
 import MenuGrid from '@/components/restaurant/MenuGrid';
@@ -144,7 +143,7 @@ export default function Restaurant() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-gray-50 pb-20" dir="rtl">
+    <div className="min-h-screen bg-gray-50 pb-20" dir="rtl">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -294,6 +293,6 @@ export default function Restaurant() {
 
       {/* Restaurant Footer */}
       <RestaurantFooter restaurant={restaurant} branches={branches} />
-    </PageTransition>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import PageTransition from '@/components/PageTransition';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useStaffLeads, useUpdateLead, type ContactLead } from '@/hooks/useStaffLeadsData';
@@ -87,7 +86,7 @@ export default function StaffLeads() {
   const formatPhone = (phone: string) => phone.replace(/[^0-9+]/g, '');
 
   return (
-    <PageTransition className="min-h-screen bg-muted/30" dir="rtl">
+    <div className="min-h-screen bg-muted/30" dir="rtl">
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -256,6 +255,6 @@ export default function StaffLeads() {
           onPageSizeChange={setPageSize}
         />
       </main>
-    </PageTransition>
+    </div>
   );
 }

@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ChefHat, Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
-import PageTransition from '@/components/PageTransition';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ForgotPassword() {
@@ -164,7 +163,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -226,6 +225,6 @@ export default function ForgotPassword() {
           </CardContent>
         </Card>
       </div>
-    </PageTransition>
+    </div>
   );
 }

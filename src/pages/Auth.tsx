@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import PageTransition from '@/components/PageTransition';
 import { Loader2, ChefHat, Mail, CheckCircle2, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useUsernameAvailability } from '@/hooks/useAvailabilityCheck';
 import { AvailabilityIndicator } from '@/components/AvailabilityIndicator';
@@ -306,7 +305,7 @@ export default function Auth() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -566,6 +565,6 @@ export default function Auth() {
           </CardContent>
         </Card>
       </div>
-    </PageTransition>
+    </div>
   );
 }

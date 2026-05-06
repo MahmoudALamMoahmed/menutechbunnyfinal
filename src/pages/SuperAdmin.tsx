@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import PageTransition from '@/components/PageTransition';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ export default function SuperAdmin() {
   // Auth Guard مُدار مركزياً عبر ProtectedRoute في App.tsx
 
   return (
-    <PageTransition className="min-h-screen bg-muted/30" dir="rtl">
+    <div className="min-h-screen bg-muted/30" dir="rtl">
       {/* الهيدر */}
       <header className="bg-card border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -66,6 +65,6 @@ export default function SuperAdmin() {
           <TabsContent value="orders"><OrdersTab /></TabsContent>
         </Tabs>
       </div>
-    </PageTransition>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import PageTransition from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -153,7 +152,7 @@ export default function MenuManagement() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -254,6 +253,6 @@ export default function MenuManagement() {
         description={`هل أنت متأكد من حذف "${deleteDialog.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
         isLoading={isDeleting}
       />
-    </PageTransition>
+    </div>
   );
 }
