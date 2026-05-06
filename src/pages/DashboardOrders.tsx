@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import PageTransition from "@/components/PageTransition";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,7 +92,7 @@ export default function Orders() {
   const hasDashboardOrders = !limits || limits.features?.dashboard_orders;
 
   return (
-    <PageTransition className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -197,6 +196,6 @@ export default function Orders() {
           </>
         )}
       </div>
-    </PageTransition>
+    </div>
   );
 }

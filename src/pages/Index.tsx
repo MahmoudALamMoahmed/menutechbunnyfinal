@@ -1,5 +1,4 @@
 import Header from "@/components/Header";
-import PageTransition from "@/components/PageTransition";
 import HeroSection from "@/components/HeroSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
@@ -8,7 +7,7 @@ import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <PageTransition className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Header />
       <main>
         <section id="home">
@@ -25,7 +24,7 @@ const Index = () => {
         </section>
       </main>
       <Footer />
-    </PageTransition>
+    </div>
   );
 };
 

@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Lock, Eye, EyeOff, CheckCircle2, ArrowRight, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import PageTransition from '@/components/PageTransition';
 import { getPasswordStrength } from '@/lib/utils';
 
 export default function ResetPassword() {
@@ -150,7 +149,7 @@ export default function ResetPassword() {
 
   // نموذج تعيين كلمة مرور جديدة
   return (
-    <PageTransition className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -266,6 +265,6 @@ export default function ResetPassword() {
           </CardContent>
         </Card>
       </div>
-    </PageTransition>
+    </div>
   );
 }

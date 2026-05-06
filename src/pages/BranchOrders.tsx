@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import PageTransition from '@/components/PageTransition';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -125,7 +124,7 @@ export default function BranchOrders() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <div className="bg-card shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -221,6 +220,6 @@ export default function BranchOrders() {
           )}
         </div>
       </div>
-    </PageTransition>
+    </div>
   );
 }

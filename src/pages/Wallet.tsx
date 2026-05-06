@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import PageTransition from "@/components/PageTransition";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -227,7 +226,7 @@ export default function Wallet() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-muted" dir="rtl">
+    <div className="min-h-screen bg-muted" dir="rtl">
       <div className="bg-card shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -335,6 +334,6 @@ export default function Wallet() {
           </Card>
         </div>
       </div>
-    </PageTransition>
+    </div>
   );
 }

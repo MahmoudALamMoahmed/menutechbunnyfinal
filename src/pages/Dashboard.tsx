@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import PageTransition from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminRestaurant } from "@/hooks/useAdminData";
@@ -41,7 +40,7 @@ export default function Dashboard() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header - الهيدر */}
       <div className="bg-card shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -211,6 +210,6 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
-    </PageTransition>
+    </div>
   );
 }
