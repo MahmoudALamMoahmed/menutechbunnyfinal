@@ -201,14 +201,14 @@ export default function OffersSection({
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {offers.map(offer => (
                 <SortableItem key={offer.id} id={offer.id}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                       {offer.image_url && (
                         <img src={offer.image_url} alt={offer.title} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium truncate">{offer.title}</p>
+                          <p className="font-medium truncate max-w-[120px] sm:max-w-full">{offer.title}</p>
                           {!offer.is_active && <Badge variant="secondary" className="text-xs">معطّل</Badge>}
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-sm">
