@@ -104,9 +104,9 @@ export default function OffersSection({
   const offerImagePublicId = `restaurants/${restaurantUsername}/offers/${editing?.id || tempOfferId || 'new'}`;
 
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
@@ -213,7 +213,7 @@ export default function OffersSection({
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-sm">
                           {offer.original_price && (
-                            <span className="text-muted-foreground line-through">{offer.original_price}</span>
+                            <span className="text-muted-foreground line-through">{offer.original_price}ج.م</span>
                           )}
                           <span className="font-bold text-primary">{offer.price} ج.م</span>
                         </div>
