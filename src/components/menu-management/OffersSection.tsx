@@ -219,7 +219,7 @@ export default function OffersSection({
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-2 flex-shrink-0 self-start mr-auto">
                       <Button size="sm" variant="outline" onClick={() => startEdit(offer)}>
                         <Edit className="w-4 h-4" />
                       </Button>
