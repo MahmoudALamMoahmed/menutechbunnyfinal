@@ -208,7 +208,7 @@ export default function OffersSection({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium truncate max-w-[120px] sm:max-w-full">{offer.title}</p>
+                          <p className="font-medium truncate max-w-[120px] sm:max-w-full overflow-hidden">{offer.title}</p>
                           {!offer.is_active && <Badge variant="secondary" className="text-xs">معطّل</Badge>}
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-sm">
