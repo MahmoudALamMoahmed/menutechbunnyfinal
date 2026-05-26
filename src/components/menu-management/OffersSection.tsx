@@ -112,7 +112,7 @@ export default function OffersSection({
               <Sparkles className="w-5 h-5 text-primary" />
               إدارة العروض
             </CardTitle>
-            <CardDescription>أضف عروضاً مميزة تظهر للزبائن في صفحة المطعم</CardDescription>
+            <CardDescription>أضف عروضاً مميزة</CardDescription>
           </div>
           <Button onClick={() => {
             if (showForm) { resetForm(); return; }
