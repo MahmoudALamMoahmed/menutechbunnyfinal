@@ -108,10 +108,7 @@ export default function OffersSection({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              إدارة العروض
-            </CardTitle>
+            <CardTitle> إدارة العروض </CardTitle>
             <CardDescription>أضف عروضاً مميزة</CardDescription>
           </div>
           <Button onClick={() => {
