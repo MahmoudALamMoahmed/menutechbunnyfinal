@@ -106,7 +106,7 @@ export default function OffersSection({
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
