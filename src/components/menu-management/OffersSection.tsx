@@ -106,9 +106,12 @@ export default function OffersSection({
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <CardTitle> إدارة العروض </CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              إدارة العروض
+            </CardTitle>
             <CardDescription>أضف عروضاً مميزة</CardDescription>
           </div>
           <Button onClick={() => {
@@ -210,7 +213,7 @@ export default function OffersSection({
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-sm">
                           {offer.original_price && (
-                            <span className="text-muted-foreground line-through">{offer.original_price} ج.م</span>
+                            <span className="text-muted-foreground line-through">{offer.original_price}</span>
                           )}
                           <span className="font-bold text-primary">{offer.price} ج.م</span>
                         </div>
