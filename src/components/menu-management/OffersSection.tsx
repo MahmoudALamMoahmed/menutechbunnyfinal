@@ -201,8 +201,8 @@ export default function OffersSection({
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {offers.map(offer => (
                 <SortableItem key={offer.id} id={offer.id}>
-                  <div className="flex justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {offer.image_url && (
                         <img src={offer.image_url} alt={offer.title} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                       )}
