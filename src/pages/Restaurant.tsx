@@ -158,7 +158,7 @@ export default function Restaurant() {
             {isOwner && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/${username}/dashboard`)}>
                 <Settings className="w-4 h-4 ml-1" />
-                إدارة المطعم
+                إدارة
               </Button>
             )}
           </div>
