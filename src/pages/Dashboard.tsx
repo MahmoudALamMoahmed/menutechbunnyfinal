@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminRestaurant } from "@/hooks/useAdminData";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import {
   Settings,
@@ -16,11 +17,13 @@ import {
   Wallet,
   Crown,
   MessageCircle,
+  LogOut,
 } from "lucide-react";
 
 export default function Dashboard() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { isBranchStaff, signOut } = useAuth();
   // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useAdminRestaurant(username);
   const restaurantId = restaurant?.id;
