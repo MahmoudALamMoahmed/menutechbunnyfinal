@@ -160,7 +160,7 @@ export default function WhatsAppOrders() {
               </CardContent>
             </Card>
 
-            <OrderStats orders={orders} />
+            <OrderStats orders={orders} isBranchStaff={isBranchStaff} />
 
             <OrderFilters
               searchQuery={searchQuery}
