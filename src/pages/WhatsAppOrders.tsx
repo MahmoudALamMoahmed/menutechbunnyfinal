@@ -83,7 +83,7 @@ export default function WhatsAppOrders() {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
-  const hasWhatsappOrders = !limits || limits.features?.dashboard_orders;
+  const hasWhatsappOrders = isBranchStaff || !limits || limits.features?.dashboard_orders;
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
