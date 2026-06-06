@@ -161,7 +161,7 @@ export default function Orders() {
               </CardContent>
             </Card>
 
-            <OrderStats orders={orders} />
+            <OrderStats orders={orders} isBranchStaff={isBranchStaff} />
 
             <OrderFilters
               searchQuery={searchQuery}
