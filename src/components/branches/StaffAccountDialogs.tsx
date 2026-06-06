@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserPlus, Mail, Lock } from 'lucide-react';
+import { UserPlus, Mail, Lock, Link2, Copy, Check } from 'lucide-react';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
