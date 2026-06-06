@@ -20,7 +20,7 @@ const MenuManagement = lazy(() => import("./pages/MenuManagement"));
 const FooterManagement = lazy(() => import("./pages/FooterManagement"));
 const BranchesManagement = lazy(() => import("./pages/BranchesManagement"));
 const DashboardOrders = lazy(() => import("./pages/DashboardOrders"));
-const BranchOrders = lazy(() => import("./pages/BranchOrders"));
+
 const Wallet = lazy(() => import("./pages/Wallet"));
 const DashboardAnalytics = lazy(() => import("./pages/DashboardAnalytics"));
 const WhatsAppOrders = lazy(() => import("./pages/WhatsAppOrders"));
