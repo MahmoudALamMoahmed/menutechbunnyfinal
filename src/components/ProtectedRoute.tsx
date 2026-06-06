@@ -5,17 +5,16 @@ import { useRestaurant } from '@/hooks/useRestaurantData';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  /** يتطلب أن يكون المستخدم صاحب المطعم (ليس موظف فرع) */
+  /** يتطلب أن يكون المستخدم صاحب المطعم */
   requireOwner?: boolean;
-  /** يسمح فقط لموظف الفرع */
-  requireBranchStaff?: boolean;
+  /** يسمح أيضاً لموظف الفرع التابع لنفس المطعم بالدخول لهذه الصفحة */
+  allowBranchStaff?: boolean;
   /** يسمح فقط لـ super_admin */
   requireSuperAdmin?: boolean;
   /** يسمح فقط لـ sales أو super_admin */
   requireSales?: boolean;
 }
 
-// شاشة تحميل مشتركة
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center" dir="rtl">
@@ -27,7 +26,6 @@ function LoadingScreen() {
   );
 }
 
-// شاشة عدم الصلاحية
 function UnauthorizedScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center" dir="rtl">
@@ -43,53 +41,52 @@ function UnauthorizedScreen() {
 export default function ProtectedRoute({
   children,
   requireOwner = false,
-  requireBranchStaff = false,
+  allowBranchStaff = false,
   requireSuperAdmin = false,
   requireSales = false,
 }: ProtectedRouteProps) {
   const { username } = useParams<{ username: string }>();
-  const { user, loading, userTypeLoading, isBranchStaff, branchStaffInfo, isSuperAdmin, isSales, username: authUsername } = useAuth();
+  const {
+    user, loading, userTypeLoading,
+    isBranchStaff, branchStaffInfo,
+    isSuperAdmin, isSales,
+    username: authUsername,
+  } = useAuth();
 
-  // جلب بيانات المطعم فقط إذا كان المسار يحتوي على username (صفحات الأدمن)
+  // جلب بيانات المطعم فقط إذا كان المسار يحتوي على username
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(
-    requireOwner || requireBranchStaff ? username : undefined
+    requireOwner ? username : undefined
   );
 
-  // انتظار تحميل المصادقة
   if (loading || userTypeLoading) return <LoadingScreen />;
-
-  // مستخدم غير مسجل → تسجيل الدخول
   if (!user) return <Navigate to="/auth" replace />;
 
-  // صفحات Super Admin
+  // Super Admin
   if (requireSuperAdmin) {
     if (!isSuperAdmin) return <Navigate to="/" replace />;
     return <>{children}</>;
   }
 
-  // صفحات Sales
+  // Sales
   if (requireSales) {
     if (!isSales && !isSuperAdmin) return <Navigate to="/" replace />;
     return <>{children}</>;
   }
 
-  // صفحات موظف الفرع
-  if (requireBranchStaff) {
-    if (!isBranchStaff) return <Navigate to="/" replace />;
-    return <>{children}</>;
-  }
-
-  // صفحات صاحب المطعم (الأغلب)
+  // صفحات صاحب المطعم
   if (requireOwner) {
-    // موظف الفرع يُحول لصفحته
+    // موظف الفرع
     if (isBranchStaff && branchStaffInfo) {
-      return <Navigate to={`/${branchStaffInfo.restaurantUsername}/branch-orders`} replace />;
+      // إن لم تكن الصفحة مسموحة لموظف الفرع → غير مصرح
+      if (!allowBranchStaff) return <UnauthorizedScreen />;
+      // يجب أن يخص المطعم نفسه
+      if (branchStaffInfo.restaurantUsername !== username) return <UnauthorizedScreen />;
+      return <>{children}</>;
     }
 
-    // انتظار تحميل بيانات المطعم
     if (restaurantLoading) return <LoadingScreen />;
 
-    // التحقق من ملكية المطعم — الـ username في الرابط يجب أن يطابق username المالك من useAuth
+    // التحقق من ملكية المطعم
     if (username && username !== authUsername) {
       return <UnauthorizedScreen />;
     }
@@ -97,6 +94,5 @@ export default function ProtectedRoute({
     return <>{children}</>;
   }
 
-  // افتراضي: مصادقة فقط
   return <>{children}</>;
 }
