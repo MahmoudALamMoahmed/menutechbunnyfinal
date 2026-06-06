@@ -89,135 +89,159 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>إجراءات سريعة</CardTitle>
-              <CardDescription>اختر ما تريد إدارته</CardDescription>
+              <CardDescription>{isBranchStaff ? "إدارة طلبات فرعك" : "اختر ما تريد إدارته"}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* زر إدارة معلومات المطعم — يفتح صفحة مستقلة */}
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => navigate(`/${username}/restaurant-info`)}
-              >
-                <Store className="w-4 h-4 ml-2" />
-                إدارة معلومات المطعم
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/menu-management`)}
-              >
-                <Menu className="w-4 h-4 ml-2" />
-                إدارة القائمة
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/footer-management`)}
-              >
-                <Settings className="w-4 h-4 ml-2" />
-                إدارة الفوتر
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/branches-management`)}
-              >
-                <Building2 className="w-4 h-4 ml-2" />
-                إدارة الفروع
-              </Button>
+              {!isBranchStaff && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => navigate(`/${username}/restaurant-info`)}
+                  >
+                    <Store className="w-4 h-4 ml-2" />
+                    إدارة معلومات المطعم
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!restaurant}
+                    onClick={() => restaurant && navigate(`/${restaurant.username}/menu-management`)}
+                  >
+                    <Menu className="w-4 h-4 ml-2" />
+                    إدارة القائمة
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!restaurant}
+                    onClick={() => restaurant && navigate(`/${restaurant.username}/footer-management`)}
+                  >
+                    <Settings className="w-4 h-4 ml-2" />
+                    إدارة الفوتر
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!restaurant}
+                    onClick={() => restaurant && navigate(`/${restaurant.username}/branches-management`)}
+                  >
+                    <Building2 className="w-4 h-4 ml-2" />
+                    إدارة الفروع
+                  </Button>
+                </>
+              )}
+
               <div className="relative">
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  disabled={!restaurant || !limits?.features?.dashboard_orders}
+                  disabled={!restaurant || (!isBranchStaff && !limits?.features?.dashboard_orders)}
                   onClick={() => restaurant && navigate(`/${restaurant.username}/dashboard-orders`)}
                 >
                   <ShoppingBag className="w-4 h-4 ml-2" />
                   طلبات لوحة التحكم
                 </Button>
-                {limits && !limits.features?.dashboard_orders && (
+                {!isBranchStaff && limits && !limits.features?.dashboard_orders && (
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
+
               <div className="relative">
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  disabled={!restaurant || !limits?.features?.analytics}
-                  onClick={() => restaurant && navigate(`/${restaurant.username}/dashboard-analytics`)}
-                >
-                  <BarChart3 className="w-4 h-4 ml-2" />
-                  تقارير لوحة التحكم
-                </Button>
-                {limits && !limits.features?.analytics && (
-                  <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
-                )}
-              </div>
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={!restaurant || !limits?.features?.dashboard_orders}
+                  disabled={!restaurant || (!isBranchStaff && !limits?.features?.dashboard_orders)}
                   onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-orders`)}
                 >
                   <MessageCircle className="w-4 h-4 ml-2" />
                   طلبات واتساب
                 </Button>
-                {limits && !limits.features?.dashboard_orders && (
+                {!isBranchStaff && limits && !limits.features?.dashboard_orders && (
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
-              <div className="relative">
+
+              {!isBranchStaff && (
+                <>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      disabled={!restaurant || !limits?.features?.analytics}
+                      onClick={() => restaurant && navigate(`/${restaurant.username}/dashboard-analytics`)}
+                    >
+                      <BarChart3 className="w-4 h-4 ml-2" />
+                      تقارير لوحة التحكم
+                    </Button>
+                    {limits && !limits.features?.analytics && (
+                      <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      disabled={!restaurant || !limits?.features?.analytics}
+                      onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-analytics`)}
+                    >
+                      <MessageCircle className="w-4 h-4 ml-2" />
+                      تقارير واتساب
+                    </Button>
+                    {limits && !limits.features?.analytics && (
+                      <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!restaurant}
+                    onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}
+                  >
+                    <Wallet className="w-4 h-4 ml-2" />
+                    المحفظة
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!restaurant}
+                    onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}
+                  >
+                    <Crown className="w-4 h-4 ml-2" />
+                    الباقة والاشتراك
+                  </Button>
+                </>
+              )}
+
+              {isBranchStaff && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  disabled={!restaurant || !limits?.features?.analytics}
-                  onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-analytics`)}
+                  onClick={async () => { await signOut(); navigate('/'); }}
                 >
-                  <MessageCircle className="w-4 h-4 ml-2" />
-                  تقارير واتساب
+                  <LogOut className="w-4 h-4 ml-2" />
+                  تسجيل الخروج
                 </Button>
-                {limits && !limits.features?.analytics && (
-                  <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}
-              >
-                <Wallet className="w-4 h-4 ml-2" />
-                المحفظة
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}
-              >
-                <Crown className="w-4 h-4 ml-2" />
-                الباقة والاشتراك
-              </Button>
+              )}
             </CardContent>
           </Card>
 
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>مساعدة</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">هل تحتاج مساعدة في إعداد مطعمك؟</p>
-              <Button variant="outline" size="sm" className="w-full">
-                تواصل معنا
-              </Button>
-            </CardContent>
-          </Card>
+          {!isBranchStaff && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>مساعدة</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">هل تحتاج مساعدة في إعداد مطعمك؟</p>
+                <Button variant="outline" size="sm" className="w-full">
+                  تواصل معنا
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
