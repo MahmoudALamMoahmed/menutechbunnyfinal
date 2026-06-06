@@ -57,7 +57,12 @@ export default function Dashboard() {
                   <h1 className="font-bold text-foreground text-base">
                     {restaurant ? "لوحة التحكم" : "إنشاء مطعم جديد"}
                   </h1>
-                  {limits && (
+                  {isBranchStaff ? (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      موظف فرع
+                    </Badge>
+                  ) : limits && (
                     <Badge variant={limits.is_subscribed ? "default" : "secondary"} className="flex items-center gap-1">
                       <Crown className="w-3 h-3" />
                       {limits.plan_name_ar}
