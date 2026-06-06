@@ -31,9 +31,20 @@ export default function StaffAccountDialogs({
   restaurantId, showCreateDialog, setShowCreateDialog, selectedBranch,
   showDeleteDialog, setShowDeleteDialog, staffToDelete, setStaffToDelete, onSuccess,
 }: StaffAccountDialogsProps) {
+  const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const loginUrl = username ? `${window.location.origin}/${username}/branch-staff-login` : '';
+
+  const handleCopy = async () => {
+    if (!loginUrl) return;
+    await navigator.clipboard.writeText(loginUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleCreate = async () => {
     if (!selectedBranch || !form.email || !form.password) {
