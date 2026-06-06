@@ -116,6 +116,18 @@ export default function StaffAccountDialogs({
               <Label htmlFor="staffPassword" className="flex items-center gap-2"><Lock className="w-4 h-4" />كلمة المرور</Label>
               <Input id="staffPassword" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="6 أحرف على الأقل" disabled={loading} />
             </div>
+            {loginUrl && (
+              <div className="space-y-2 rounded-lg border border-dashed bg-muted/40 p-3">
+                <Label className="flex items-center gap-2 text-xs"><Link2 className="w-3.5 h-3.5" />رابط دخول موظفي الفرع</Label>
+                <div className="flex items-center gap-2">
+                  <Input value={loginUrl} readOnly className="text-xs ltr:text-left" dir="ltr" />
+                  <Button type="button" size="sm" variant="outline" onClick={handleCopy} className="shrink-0">
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">شارك هذا الرابط مع موظف الفرع — هو فقط من يصل إليه ولا يوجد زر يقود إليه.</p>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2 border-t">
               <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={loading}>إلغاء</Button>
               <Button onClick={handleCreate} disabled={loading}>
