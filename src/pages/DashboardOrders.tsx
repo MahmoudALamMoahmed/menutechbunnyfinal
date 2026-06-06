@@ -102,7 +102,7 @@ export default function Orders() {
     );
   }
 
-  const hasDashboardOrders = !limits || limits.features?.dashboard_orders;
+  const hasDashboardOrders = isBranchStaff || !limits || limits.features?.dashboard_orders;
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
