@@ -78,7 +78,9 @@ export default function Restaurant() {
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
   const [showProductDialog, setShowProductDialog] = useState(false);
 
-  const isOwner = user && restaurant && username === restaurant.username;
+  const isOwner = !!user && !!restaurant && username === restaurant.username && !isBranchStaff;
+  const isStaffOfThisRestaurant = !!user && isBranchStaff && branchStaffInfo?.restaurantUsername === username;
+  const canManage = isOwner || isStaffOfThisRestaurant;
 
   const openProductDialog = (item: MenuItem) => {
     setSelectedProduct(item);
