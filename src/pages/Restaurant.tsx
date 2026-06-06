@@ -42,7 +42,7 @@ function offerToMenuItem(offer: Offer): MenuItem {
 export default function Restaurant() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isBranchStaff, branchStaffInfo } = useAuth();
 
   // RPC واحدة بدل 7 طلبات منفصلة
   const { data: publicData, isLoading: loadingPublicData } = usePublicRestaurantData(username);
