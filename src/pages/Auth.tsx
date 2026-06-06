@@ -105,9 +105,14 @@ export default function Auth() {
         return;
       }
 
-      // إذا كان موظف فرع → توجيهه لصفحة الطلبات مباشرة
+      // موظف الفرع لا يجب أن يدخل من هنا — نُسجل خروجه ونرشده لرابط دخول مطعمه
       if (isBranchStaff && branchStaffInfo) {
-        navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
+        await supabase.auth.signOut();
+        toast({
+          title: 'استخدم رابط مطعمك',
+          description: 'موظفي الفروع يسجلون الدخول من رابط الدخول الخاص بمطعمهم',
+          variant: 'destructive',
+        });
         return;
       }
 
