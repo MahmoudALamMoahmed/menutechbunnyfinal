@@ -61,22 +61,21 @@ const App = () => (
               <Route path="/forgot-password" element={withErrorBoundary(<ForgotPassword />)} />
               <Route path="/reset-password" element={withErrorBoundary(<ResetPassword />)} />
               <Route path="/:username" element={withErrorBoundary(<Restaurant />)} />
+              <Route path="/:username/branch-staff-login" element={withErrorBoundary(<BranchStaffLogin />)} />
 
               {/* صفحات صاحب المطعم — محمية */}
-              <Route path="/:username/dashboard" element={withErrorBoundary(<ProtectedRoute requireOwner><Dashboard /></ProtectedRoute>)} />
+              <Route path="/:username/dashboard" element={withErrorBoundary(<ProtectedRoute requireOwner allowBranchStaff><Dashboard /></ProtectedRoute>)} />
               <Route path="/:username/restaurant-info" element={withErrorBoundary(<ProtectedRoute requireOwner><RestaurantInfo /></ProtectedRoute>)} />
               <Route path="/:username/menu-management" element={withErrorBoundary(<ProtectedRoute requireOwner><MenuManagement /></ProtectedRoute>)} />
               <Route path="/:username/footer-management" element={withErrorBoundary(<ProtectedRoute requireOwner><FooterManagement /></ProtectedRoute>)} />
               <Route path="/:username/branches-management" element={withErrorBoundary(<ProtectedRoute requireOwner><BranchesManagement /></ProtectedRoute>)} />
-              <Route path="/:username/dashboard-orders" element={withErrorBoundary(<ProtectedRoute requireOwner><DashboardOrders /></ProtectedRoute>)} />
+              <Route path="/:username/dashboard-orders" element={withErrorBoundary(<ProtectedRoute requireOwner allowBranchStaff><DashboardOrders /></ProtectedRoute>)} />
               <Route path="/:username/wallet" element={withErrorBoundary(<ProtectedRoute requireOwner><Wallet /></ProtectedRoute>)} />
               <Route path="/:username/dashboard-analytics" element={withErrorBoundary(<ProtectedRoute requireOwner><DashboardAnalytics /></ProtectedRoute>)} />
-              <Route path="/:username/whatsapp-orders" element={withErrorBoundary(<ProtectedRoute requireOwner><WhatsAppOrders /></ProtectedRoute>)} />
+              <Route path="/:username/whatsapp-orders" element={withErrorBoundary(<ProtectedRoute requireOwner allowBranchStaff><WhatsAppOrders /></ProtectedRoute>)} />
               <Route path="/:username/whatsapp-analytics" element={withErrorBoundary(<ProtectedRoute requireOwner><WhatsAppAnalytics /></ProtectedRoute>)} />
               <Route path="/:username/subscription" element={withErrorBoundary(<ProtectedRoute requireOwner><Subscription /></ProtectedRoute>)} />
 
-              {/* صفحة موظف الفرع */}
-              <Route path="/:username/branch-orders" element={withErrorBoundary(<ProtectedRoute requireBranchStaff><BranchOrders /></ProtectedRoute>)} />
 
               {/* صفحات الإدارة */}
               <Route path="/super-admin" element={withErrorBoundary(<ProtectedRoute requireSuperAdmin><SuperAdmin /></ProtectedRoute>)} />
