@@ -157,7 +157,7 @@ export default function Restaurant() {
           </div>
           <div className="flex items-center gap-2">
             <ShareDialog restaurantName={restaurant.name} username={username!} />
-            {isOwner && (
+            {canManage && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/${username}/dashboard`)}>
                 <Settings className="w-4 h-4 ml-1" />
                 إدارة
