@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserPlus, Mail, Lock } from 'lucide-react';
+import { UserPlus, Mail, Lock, Link2, Copy, Check } from 'lucide-react';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,9 +31,20 @@ export default function StaffAccountDialogs({
   restaurantId, showCreateDialog, setShowCreateDialog, selectedBranch,
   showDeleteDialog, setShowDeleteDialog, staffToDelete, setStaffToDelete, onSuccess,
 }: StaffAccountDialogsProps) {
+  const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const loginUrl = username ? `${window.location.origin}/${username}/branch-staff-login` : '';
+
+  const handleCopy = async () => {
+    if (!loginUrl) return;
+    await navigator.clipboard.writeText(loginUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleCreate = async () => {
     if (!selectedBranch || !form.email || !form.password) {
@@ -104,6 +116,18 @@ export default function StaffAccountDialogs({
               <Label htmlFor="staffPassword" className="flex items-center gap-2"><Lock className="w-4 h-4" />كلمة المرور</Label>
               <Input id="staffPassword" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="6 أحرف على الأقل" disabled={loading} />
             </div>
+            {loginUrl && (
+              <div className="space-y-2 rounded-lg border border-dashed bg-muted/40 p-3">
+                <Label className="flex items-center gap-2 text-xs"><Link2 className="w-3.5 h-3.5" />رابط دخول موظفي الفرع</Label>
+                <div className="flex items-center gap-2">
+                  <Input value={loginUrl} readOnly className="text-xs ltr:text-left" dir="ltr" />
+                  <Button type="button" size="sm" variant="outline" onClick={handleCopy} className="shrink-0">
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">شارك هذا الرابط مع موظف الفرع — هو فقط من يصل إليه ولا يوجد زر يقود إليه.</p>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2 border-t">
               <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={loading}>إلغاء</Button>
               <Button onClick={handleCreate} disabled={loading}>

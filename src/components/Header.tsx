@@ -65,27 +65,23 @@ const Header = () => {
             {user ? (
               <div className="flex items-center gap-2 md:gap-3">
                 <span className="hidden md:inline font-cairo text-sm text-muted-foreground">مرحباً {user.email}</span>
-                {isBranchStaff && branchStaffInfo ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`)}
-                    className="font-cairo text-xs md:text-sm"
-                  >
-                    طلبات فرعي
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => username && navigate(`/${username}`)}
-                    disabled={!username}
-                    className="font-cairo md:text-sm"
-                  >
-                    <span className="md:hidden">الدخول لمطعمك</span>
-                    <span className="hidden md:inline">الدخول لمطعمك</span>
-                  </Button>
-                )}
+                {(() => {
+                  const targetUsername = isBranchStaff && branchStaffInfo
+                    ? branchStaffInfo.restaurantUsername
+                    : username;
+                  return (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => targetUsername && navigate(`/${targetUsername}`)}
+                      disabled={!targetUsername}
+                      className="font-cairo md:text-sm"
+                    >
+                      <span className="md:hidden">الدخول لمطعمك</span>
+                      <span className="hidden md:inline">الدخول لمطعمك</span>
+                    </Button>
+                  );
+                })()}
                 <Button size="sm" variant="outline" onClick={handleSignOut} className="hidden md:inline-flex">
                   <LogOut className="w-4 h-4 ml-1" />
                   تسجيل الخروج

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Package, Clock, Volume2, VolumeX } from "lucide-react";
-import { useAdminRestaurant, useAdminOrders, usePendingOrdersCount } from "@/hooks/useAdminData";
+import { useAdminRestaurant, useAdminOrders, useBranchOrders, usePendingOrdersCount } from "@/hooks/useAdminData";
 import { useUpdateOrderStatus } from "@/hooks/admin-mutations/useOrderMutations";
 import { useAuth } from "@/hooks/useAuth";
 import OrderCard from "@/components/OrderCard";
@@ -19,7 +19,7 @@ import PaginationControls from "@/components/super-admin/PaginationControls";
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isBranchStaff, branchStaffInfo } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState<number | null>(null);
@@ -29,19 +29,32 @@ export default function Orders() {
 
   const { data: restaurant, isLoading: restaurantLoading } = useAdminRestaurant(username);
   const { data: limits } = useRestaurantLimits(restaurant?.id);
-  const { data: ordersResult, isLoading: ordersLoading } = useAdminOrders(restaurant?.id, "dashboard", page, pageSize);
-  const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
+
+  // اختر مصدر الطلبات حسب نوع المستخدم
+  const branchId = isBranchStaff ? branchStaffInfo?.branch_id : undefined;
+  const ownerQuery = useAdminOrders(isBranchStaff ? undefined : restaurant?.id, "dashboard", page, pageSize);
+  const staffQuery = useBranchOrders(branchId, "dashboard", page, pageSize);
+  const ordersResult = isBranchStaff ? staffQuery.data : ownerQuery.data;
+  const ordersLoading = isBranchStaff ? staffQuery.isLoading : ownerQuery.isLoading;
+
+  const updateStatusMut = useUpdateOrderStatus(isBranchStaff ? branchId : restaurant?.id, isBranchStaff);
 
   const orders = ordersResult?.data ?? [];
   const totalCount = ordersResult?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const { data: pendingCount = 0 } = usePendingOrdersCount('restaurant_id', restaurant?.id, 'dashboard');
+  const { data: pendingCount = 0 } = usePendingOrdersCount(
+    isBranchStaff ? 'branch_id' : 'restaurant_id',
+    isBranchStaff ? branchId : restaurant?.id,
+    'dashboard',
+  );
 
   useOrdersRealtime({
-    filterColumn: "restaurant_id",
-    filterValue: restaurant?.id,
-    queryKey: ["admin_orders", restaurant?.id, "dashboard"],
+    filterColumn: isBranchStaff ? "branch_id" : "restaurant_id",
+    filterValue: isBranchStaff ? branchId : restaurant?.id,
+    queryKey: isBranchStaff
+      ? ["branch_orders", branchId, "dashboard"]
+      : ["admin_orders", restaurant?.id, "dashboard"],
   });
 
   // Reset page on filter change
@@ -89,7 +102,7 @@ export default function Orders() {
     );
   }
 
-  const hasDashboardOrders = !limits || limits.features?.dashboard_orders;
+  const hasDashboardOrders = isBranchStaff || !limits || limits.features?.dashboard_orders;
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -148,7 +161,7 @@ export default function Orders() {
               </CardContent>
             </Card>
 
-            <OrderStats orders={orders} />
+            <OrderStats orders={orders} isBranchStaff={isBranchStaff} />
 
             <OrderFilters
               searchQuery={searchQuery}

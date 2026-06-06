@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Package, Clock, Volume2, VolumeX, MessageCircle } from "lucide-react";
-import { useAdminRestaurant, useAdminOrders, usePendingOrdersCount } from "@/hooks/useAdminData";
+import { useAdminRestaurant, useAdminOrders, useBranchOrders, usePendingOrdersCount } from "@/hooks/useAdminData";
 import { useUpdateOrderStatus } from "@/hooks/admin-mutations/useOrderMutations";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurantLimits } from "@/hooks/useSubscription";
@@ -19,7 +19,7 @@ import PaginationControls from "@/components/super-admin/PaginationControls";
 export default function WhatsAppOrders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isBranchStaff, branchStaffInfo } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState<number | null>(null);
@@ -29,19 +29,31 @@ export default function WhatsAppOrders() {
 
   const { data: restaurant, isLoading: restaurantLoading } = useAdminRestaurant(username);
   const { data: limits } = useRestaurantLimits(restaurant?.id);
-  const { data: ordersResult, isLoading: ordersLoading } = useAdminOrders(restaurant?.id, "whatsapp", page, pageSize);
-  const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
+
+  const branchId = isBranchStaff ? branchStaffInfo?.branch_id : undefined;
+  const ownerQuery = useAdminOrders(isBranchStaff ? undefined : restaurant?.id, "whatsapp", page, pageSize);
+  const staffQuery = useBranchOrders(branchId, "whatsapp", page, pageSize);
+  const ordersResult = isBranchStaff ? staffQuery.data : ownerQuery.data;
+  const ordersLoading = isBranchStaff ? staffQuery.isLoading : ownerQuery.isLoading;
+
+  const updateStatusMut = useUpdateOrderStatus(isBranchStaff ? branchId : restaurant?.id, isBranchStaff);
 
   const orders = ordersResult?.data ?? [];
   const totalCount = ordersResult?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const { data: pendingCount = 0 } = usePendingOrdersCount('restaurant_id', restaurant?.id, 'whatsapp');
+  const { data: pendingCount = 0 } = usePendingOrdersCount(
+    isBranchStaff ? 'branch_id' : 'restaurant_id',
+    isBranchStaff ? branchId : restaurant?.id,
+    'whatsapp',
+  );
 
   useOrdersRealtime({
-    filterColumn: "restaurant_id",
-    filterValue: restaurant?.id,
-    queryKey: ["admin_orders", restaurant?.id, "whatsapp"],
+    filterColumn: isBranchStaff ? "branch_id" : "restaurant_id",
+    filterValue: isBranchStaff ? branchId : restaurant?.id,
+    queryKey: isBranchStaff
+      ? ["branch_orders", branchId, "whatsapp"]
+      : ["admin_orders", restaurant?.id, "whatsapp"],
   });
 
   useEffect(() => { setPage(1); }, [searchQuery, timeFilter, statusFilter]);
@@ -71,7 +83,7 @@ export default function WhatsAppOrders() {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
-  const hasWhatsappOrders = !limits || limits.features?.dashboard_orders;
+  const hasWhatsappOrders = isBranchStaff || !limits || limits.features?.dashboard_orders;
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
@@ -148,7 +160,7 @@ export default function WhatsAppOrders() {
               </CardContent>
             </Card>
 
-            <OrderStats orders={orders} />
+            <OrderStats orders={orders} isBranchStaff={isBranchStaff} />
 
             <OrderFilters
               searchQuery={searchQuery}

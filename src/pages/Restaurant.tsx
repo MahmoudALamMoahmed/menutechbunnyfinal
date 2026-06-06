@@ -42,7 +42,7 @@ function offerToMenuItem(offer: Offer): MenuItem {
 export default function Restaurant() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isBranchStaff, branchStaffInfo } = useAuth();
 
   // RPC واحدة بدل 7 طلبات منفصلة
   const { data: publicData, isLoading: loadingPublicData } = usePublicRestaurantData(username);
@@ -78,7 +78,9 @@ export default function Restaurant() {
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
   const [showProductDialog, setShowProductDialog] = useState(false);
 
-  const isOwner = user && restaurant && username === restaurant.username;
+  const isOwner = !!user && !!restaurant && username === restaurant.username && !isBranchStaff;
+  const isStaffOfThisRestaurant = !!user && isBranchStaff && branchStaffInfo?.restaurantUsername === username;
+  const canManage = isOwner || isStaffOfThisRestaurant;
 
   const openProductDialog = (item: MenuItem) => {
     setSelectedProduct(item);
@@ -155,7 +157,7 @@ export default function Restaurant() {
           </div>
           <div className="flex items-center gap-2">
             <ShareDialog restaurantName={restaurant.name} username={username!} />
-            {isOwner && (
+            {canManage && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/${username}/dashboard`)}>
                 <Settings className="w-4 h-4 ml-1" />
                 إدارة
