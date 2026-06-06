@@ -14,6 +14,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Restaurant = lazy(() => import("./pages/Restaurant"));
+const BranchStaffLogin = lazy(() => import("./pages/BranchStaffLogin"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const MenuManagement = lazy(() => import("./pages/MenuManagement"));
 const FooterManagement = lazy(() => import("./pages/FooterManagement"));
