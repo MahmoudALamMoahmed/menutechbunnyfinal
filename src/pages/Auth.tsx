@@ -144,7 +144,7 @@ export default function Auth() {
     setShowResendOption(false);
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       setError(getErrorMessage(error));
       if (error.message === 'Email not confirmed') {
@@ -152,14 +152,10 @@ export default function Auth() {
         setShowResendOption(true);
         setResendCooldown(0);
       }
-    } else {
-      toast({
-        title: 'تم تسجيل الدخول بنجاح',
-        description: 'مرحباً بك في منصة المطاعم',
-      });
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
+    // عند النجاح: لا نعرض توست هنا — handleUserSession في الـ useEffect
+    // هو اللي يقرر التوست المناسب بعد تحديد نوع المستخدم (مالك / موظف فرع / سوبر أدمن / sales)
   };
 
   // معالج إنشاء حساب جديد (form submit) مع التحقق من المدخلات
