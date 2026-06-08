@@ -195,8 +195,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
         if (session?.user) {
+          // مهم: نضبط userTypeLoading=true فوراً قبل أي setTimeout
+          // عشان أي useEffect يعتمد عليه (زي Auth.tsx) ينتظر لحد ما النوع يتحدد
+          setUserTypeLoading(true);
           setTimeout(() => {
             resolveUserType(session.user.id);
           }, 0);
@@ -214,11 +217,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      
+
       if (session?.user) {
+        setUserTypeLoading(true);
         setTimeout(() => {
           resolveUserType(session.user.id);
         }, 0);
+      } else {
+        setUserTypeLoading(false);
       }
     });
 

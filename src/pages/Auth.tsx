@@ -93,21 +93,11 @@ export default function Auth() {
         return;
       }
 
-      // إذا كان super admin → توجيه للوحة الإدارة
-      if (isSuperAdmin) {
-        navigate('/super-admin');
-        return;
-      }
-
-      // إذا كان موظف مبيعات → توجيهه لصفحة العملاء المحتملين
-      if (isSales) {
-        navigate('/staff-leads');
-        return;
-      }
-
       // موظف الفرع لا يجب أن يدخل من هنا — نُسجل خروجه ونرشده لرابط دخول مطعمه
+      // (نتحقق منه أولاً قبل أي توست نجاح)
       if (isBranchStaff && branchStaffInfo) {
         await supabase.auth.signOut();
+        setIsLoading(false);
         toast({
           title: 'استخدم رابط مطعمك',
           description: 'موظفي الفروع يسجلون الدخول من رابط الدخول الخاص بمطعمهم',
@@ -116,25 +106,42 @@ export default function Auth() {
         return;
       }
 
-      // إذا كان صاحب مطعم → إنشاء المطعم إذا لزم والتوجيه
-      if (!isBranchStaff) {
-        const { created, error } = await ensureRestaurantExists();
-        
-        if (created) {
-          toast({
-            title: 'تم إعداد مطعمك بنجاح',
-            description: 'مرحباً بك في منصة المطاعم',
-          });
-        }
-        
-        if (!error || error.message === 'No pending restaurant data found') {
-          navigate('/');
-        }
+      // إذا كان super admin → توجيه للوحة الإدارة
+      if (isSuperAdmin) {
+        toast({ title: 'تم تسجيل الدخول بنجاح', description: 'مرحباً بك' });
+        navigate('/super-admin');
+        return;
+      }
+
+      // إذا كان موظف مبيعات → توجيهه لصفحة العملاء المحتملين
+      if (isSales) {
+        toast({ title: 'تم تسجيل الدخول بنجاح', description: 'مرحباً بك' });
+        navigate('/staff-leads');
+        return;
+      }
+
+      // صاحب مطعم → إنشاء المطعم إذا لزم والتوجيه
+      const { created, error } = await ensureRestaurantExists();
+
+      if (created) {
+        toast({
+          title: 'تم إعداد مطعمك بنجاح',
+          description: 'مرحباً بك في منصة المطاعم',
+        });
+      } else if (!error) {
+        toast({
+          title: 'تم تسجيل الدخول بنجاح',
+          description: 'مرحباً بك في منصة المطاعم',
+        });
+      }
+
+      if (!error || error.message === 'No pending restaurant data found') {
+        navigate('/');
       }
     };
-    
+
     handleUserSession();
-  }, [user, isBranchStaff, branchStaffInfo, isSuperAdmin, userTypeLoading, navigate, ensureRestaurantExists, toast]);
+  }, [user, isBranchStaff, branchStaffInfo, isSuperAdmin, isSales, userTypeLoading, navigate, ensureRestaurantExists, toast]);
 
   // معالج تسجيل الدخول (form submit) عبر Supabase Auth
   const handleSignIn = async (e: React.FormEvent) => {
@@ -144,7 +151,7 @@ export default function Auth() {
     setShowResendOption(false);
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       setError(getErrorMessage(error));
       if (error.message === 'Email not confirmed') {
@@ -152,14 +159,10 @@ export default function Auth() {
         setShowResendOption(true);
         setResendCooldown(0);
       }
-    } else {
-      toast({
-        title: 'تم تسجيل الدخول بنجاح',
-        description: 'مرحباً بك في منصة المطاعم',
-      });
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
+    // عند النجاح: لا نعرض توست هنا — handleUserSession في الـ useEffect
+    // هو اللي يقرر التوست المناسب بعد تحديد نوع المستخدم (مالك / موظف فرع / سوبر أدمن / sales)
   };
 
   // معالج إنشاء حساب جديد (form submit) مع التحقق من المدخلات
