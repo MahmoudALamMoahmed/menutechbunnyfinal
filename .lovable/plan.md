@@ -1,36 +1,60 @@
-# إصلاح سيناريو دخول موظف الفرع من /auth
+## الهدف
+إضافة "إدارة الأنواع" بجوار "إدارة الأحجام" للأصناف، مع عرض النوع المختار بتصميم مميز في السلة والطلبات.
 
-## المشكلة
+## التصميم المقترح
 
-لما موظف فرع يحاول يسجل دخول من `/auth` (صفحة صاحب المطعم):
+### 1) قاعدة البيانات (migration واحدة)
+- جدول جديد `public.item_variants` مطابق لبنية `sizes` لكن `price` **nullable** (لأن النوع قد لا يكون له سعر):
+  - `id, menu_item_id (FK→menu_items ON DELETE CASCADE), name TEXT, price NUMERIC NULL, display_order INT, created_at, updated_at`
+- GRANTs كاملة (anon SELECT + authenticated CRUD + service_role) و RLS بنفس سياسات `sizes` (قراءة عامة، كتابة لمالك المطعم/سوبر أدمن).
+- Trigger `update_updated_at_column`.
+- تحديث RPC `get_public_restaurant_data` لإرجاع مفتاح `item_variants` (مثل `sizes`).
+- إضافة `item_variants` إلى `batch_update_display_order` whitelist.
 
-1. بيظهر له توست أخضر "تم تسجيل الدخول بنجاح" بالخطأ.
-2. بيتنقّل لـ `/` بدل ما يفضل في `/auth`.
-3. الرسالة التحذيرية "استخدم رابط مطعمك" مش بتظهر بوضوح لأن التوست الإيجابي بيطغى عليها.
+### 2) Admin: SizesDialog → تبويبين
+- إعادة تسمية الديالوج: **"إدارة الأحجام والأنواع"**.
+- استخدام `Tabs` من shadcn بداخله: تبويب "الأحجام" (الموجود حالياً) + تبويب "الأنواع".
+- تبويب الأنواع: نفس واجهة الأحجام مع جعل حقل السعر **اختيارياً** ونص توضيحي "اتركه فارغاً إذا لم يكن للنوع سعر إضافي".
+- استخراج النموذج المشترك في sub-component `VariantFormList` لتفادي التكرار (clean code).
 
-## السبب
+### 3) Hooks & mutations
+- في `useRestaurantData.ts`: إضافة `useAdminVariants` و include `item_variants` ضمن data العامة.
+- في `useMenuMutations.ts`: إضافة `useSaveVariant` + `useDeleteVariant` (نفس نمط sizes).
+- في `MenuManagement.tsx`: تمرير variants للديالوج وربط الـ delete dialog لنوع `"variant"`.
 
-`handleSignIn` في `src/pages/Auth.tsx` بيعرض التوست الإيجابي فوراً بعد نجاح `signIn`، قبل ما يتحدد نوع المستخدم. وفي نفس الوقت `useEffect` بيدخل فرع المالك أولاً لأن `branchStaffInfo` لسه `null` للحظة، فبينفّذ `ensureRestaurantExists` ثم `navigate('/')`.
+### 4) واجهة العميل (ProductDetailsDialog)
+- بعد قسم الأحجام، قسم "اختر النوع" (RadioGroup مشابه تصميمياً للأحجام، لكن يعرض السعر فقط إذا كان موجوداً، وإلا يعرض اسم النوع فقط).
+- إذا وُجدت أنواع للصنف → الاختيار **إلزامي** قبل الإضافة للسلة (نفس منطق الأحجام).
+- حساب السعر النهائي: `basePrice + (variant.price ?? 0) + extras`.
 
-## الخطة
+### 5) useCart
+- إضافة `selectedVariant?: Variant` إلى `CartItem`.
+- تحديث `getCartKey` ودوال `addToCart`/`removeFromCart` لتضمين `variantId` ضمن المفتاح الفريد.
+- توست الإضافة يذكر النوع.
 
-### `src/pages/Auth.tsx`
+### 6) CartDialog — تصميم مميز للنوع
+- بدلاً من السطر النصي البسيط الخاص بالحجم، يُعرض النوع كـ **chip/Badge ملوّن** (مثلاً `bg-accent/15 text-accent border border-accent/30 rounded-full px-2 py-0.5`) بأيقونة صغيرة (مثل `Tag` من lucide) بجوار اسم الصنف — مختلف بصرياً عن سطر "الحجم: …".
+- تحديث `removeFromCart` لتمرير `variantId`.
+- تحديث `buildOrderData` و رسالة واتساب لتضمين النوع: `🏷️ النوع: ...`.
 
-1. **تأجيل التوست الإيجابي** في `handleSignIn`: ما نعرضش "تم تسجيل الدخول بنجاح" مباشرة بعد `signIn` — نسيب `useEffect` الخاص بـ `handleUserSession` هو اللي يعرضه بعد ما يتأكد من نوع المستخدم (مالك / سوبر أدمن / sales).
-2. **حماية فرع المالك في `handleUserSession**`: قبل ما ندخل فرع المالك، نتأكد إن المستخدم مش `isBranchStaff` ومش أي دور تاني. الـ checks ترتيبها يبقى: super_admin → sales → **branch_staff (signOut)** → owner. الترتيب ده موجود بس المشكلة إن `branchStaffInfo` بيتأخر شوية، فنضيف شرط أوضح: لو `userTypeLoading` لسه `true` نستنى، ولو `!isBranchStaff && !isSuperAdmin && !isSales` فقط نعدّي للمالك.
-3. **تنظيف التوست السابق**: في فرع موظف الفرع، نستخدم `toast.dismiss()` أو نعتمد على إن التوست الإيجابي ما اتعرضش أصلاً (نتيجة الخطوة 1).
-4. **منع `navigate('/')**` في فرع المالك لو `isBranchStaff` ممكن يبقى `true` في رندر تاني — الكود الحالي بالفعل بيمنع كده بشرط `if (!isBranchStaff)`، بس مع الخطوة 1 المشكلة هتتحل من الجذر.
+### 7) عرض النوع في الطلبات
+- `OrderCard` (لوحة التحكم + WhatsApp orders): عرض النوع من `items[].variant` بنفس نمط الـ chip.
 
-## النتيجة المتوقعة
+### 8) تنظيف
+- لا حذف لميزات قائمة. تعديلات additive فقط.
+- TypeScript types ستُحدَّث تلقائياً من Supabase بعد الـ migration.
 
-- موظف الفرع لو دخل من `/auth`: مفيش توست إيجابي، يتعمله `signOut`، يظهر له توست أحمر "استخدم رابط مطعمك"، ويفضل في `/auth`.
-- صاحب المطعم: يشوف التوست الإيجابي زي ما هو وينتقل لـ `/`.
-- لا تغيير على السيناريوهات 1 و 2 اللي بتشتغل صح.
+## الملفات المتأثرة
+- migration جديدة (DB + RPC + grants).
+- `src/components/menu-management/SizesDialog.tsx` (إعادة هيكلة بـ Tabs، ربما تغيير الاسم للملف لاحقاً — سنبقيه لتقليل diff).
+- `src/pages/MenuManagement.tsx` (variants data + delete branch).
+- `src/hooks/useRestaurantData.ts`, `src/hooks/admin-mutations/useMenuMutations.ts`.
+- `src/components/ProductDetailsDialog.tsx`.
+- `src/hooks/useCart.ts`.
+- `src/components/restaurant/CartDialog.tsx`.
+- `src/components/OrderCard.tsx` (عرض النوع).
 
-## الملفات المعدّلة
-
-- `src/pages/Auth.tsx` فقط.  
-  
-بعد تنفيذ الخطه اخبرني :  
-هل الخطه هذه best practice ومنفذه بكود قابل للتطوير ؟  
-هل هذه الخطه ستعطل وقت تسجيل الدخول لأي شخص سواء صاحب مطعم او موظف او غيره ؟
+## ملاحظات تقنية
+- استخدام `Tag` icon ومتغير لون موجود في design system (لا ألوان مباشرة).
+- لا تعديل على هيكل `orders.items` (jsonb) — مجرد إضافة حقل `variant` اختياري.
+- الأداء: variants تُجلب ضمن نفس `get_public_restaurant_data` (لا طلبات إضافية).
