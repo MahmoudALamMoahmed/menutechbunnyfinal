@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Tag } from 'lucide-react';
 import { getMenuItemUrl } from '@/lib/bunny';
 
 import type { Tables } from '@/integrations/supabase/types';
 
 type MenuItem = Tables<'menu_items'>;
 type Size = Tables<'sizes'>;
+type Variant = Tables<'item_variants'>;
 type Extra = Tables<'extras'>;
 
 interface ProductDetailsDialogProps {
@@ -18,8 +19,9 @@ interface ProductDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   item: MenuItem | null;
   sizes: Size[];
+  variants: Variant[];
   extras: Extra[];
-  onAddToCart: (item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[]) => void;
+  onAddToCart: (item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[], selectedVariant?: Variant) => void;
 }
 
 export default function ProductDetailsDialog({
@@ -27,18 +29,19 @@ export default function ProductDetailsDialog({
   onOpenChange,
   item,
   sizes,
+  variants,
   extras,
-  onAddToCart
+  onAddToCart,
 }: ProductDetailsDialogProps) {
-  // UI State - الحجم المختار، الإضافات المختارة، الكمية
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<Extra[]>([]);
   const [quantity, setQuantity] = useState(1);
 
-  // Side Effect - إعادة تعيين الاختيارات عند فتح الحوار بمنتج جديد
   useEffect(() => {
     if (open) {
       setSelectedSize(null);
+      setSelectedVariant(null);
       setSelectedExtras([]);
       setQuantity(1);
     }
@@ -47,50 +50,37 @@ export default function ProductDetailsDialog({
   if (!item) return null;
 
   const itemSizes = sizes.filter(size => size.menu_item_id === item.id);
+  const itemVariants = variants.filter(v => v.menu_item_id === item.id);
   const hasMultipleSizes = itemSizes.length > 0;
+  const hasVariants = itemVariants.length > 0;
   const hasExtras = extras.length > 0;
 
   const handleExtraToggle = (extra: Extra, checked: boolean) => {
-    if (checked) {
-      setSelectedExtras(prev => [...prev, extra]);
-    } else {
-      setSelectedExtras(prev => prev.filter(e => e.id !== extra.id));
-    }
+    setSelectedExtras(prev => checked ? [...prev, extra] : prev.filter(e => e.id !== extra.id));
   };
 
   const handleAddToCart = () => {
-    if (hasMultipleSizes && !selectedSize) {
-      return;
-    }
+    if (hasMultipleSizes && !selectedSize) return;
+    if (hasVariants && !selectedVariant) return;
 
     for (let i = 0; i < quantity; i++) {
-      onAddToCart(item, selectedSize || undefined, selectedExtras.length > 0 ? selectedExtras : undefined);
+      onAddToCart(
+        item,
+        selectedSize || undefined,
+        selectedExtras.length > 0 ? selectedExtras : undefined,
+        selectedVariant || undefined,
+      );
     }
     onOpenChange(false);
-    setSelectedSize(null);
-    setSelectedExtras([]);
-    setQuantity(1);
   };
 
-  const getBasePrice = () => {
-    return selectedSize ? selectedSize.price : item.price;
-  };
+  const getBasePrice = () => (selectedSize ? selectedSize.price : item.price);
+  const getVariantPrice = () => selectedVariant?.price ?? 0;
+  const getExtrasTotal = () => selectedExtras.reduce((total, extra) => total + extra.price, 0);
+  const getCurrentPrice = () => getBasePrice() + getVariantPrice() + getExtrasTotal();
 
-  const getExtrasTotal = () => {
-    return selectedExtras.reduce((total, extra) => total + extra.price, 0);
-  };
-
-  const getCurrentPrice = () => {
-    return getBasePrice() + getExtrasTotal();
-  };
-
-  const increaseQuantity = () => {
-    setQuantity(prev => prev + 1);
-  };
-
-  const decreaseQuantity = () => {
-    setQuantity(prev => Math.max(1, prev - 1));
-  };
+  const increaseQuantity = () => setQuantity(prev => prev + 1);
+  const decreaseQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,40 +88,33 @@ export default function ProductDetailsDialog({
         <DialogHeader>
           <DialogTitle>تفاصيل المنتج</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          {/* صورة المنتج */}
           {item.image_url && (
             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
               <img src={getMenuItemUrl(item.image_url, 'large')} alt={item.name} className="w-full h-full object-contain" />
             </div>
           )}
-          
-          {/* اسم المنتج */}
+
           <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
-          
-          {/* وصف المنتج */}
           {item.description && <p className="text-gray-600 text-sm">{item.description}</p>}
-          
-          {/* الأحجام المتاحة */}
+
+          {/* الأحجام */}
           {hasMultipleSizes && (
             <div className="space-y-3">
               <p className="text-sm font-medium">اختر الحجم :</p>
-              <RadioGroup 
-                value={selectedSize?.id || ""} 
-                onValueChange={sizeId => {
-                  const size = itemSizes.find(s => s.id === sizeId);
-                  setSelectedSize(size || null);
-                }} 
+              <RadioGroup
+                value={selectedSize?.id || ""}
+                onValueChange={sizeId => setSelectedSize(itemSizes.find(s => s.id === sizeId) || null)}
                 className="grid grid-cols-3 gap-3"
               >
                 {itemSizes.map(size => (
-                  <Label 
-                    key={size.id} 
-                    htmlFor={size.id} 
+                  <Label
+                    key={size.id}
+                    htmlFor={size.id}
                     className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 text-center ${
-                      selectedSize?.id === size.id 
-                        ? 'border-primary bg-primary/5 shadow-md' 
+                      selectedSize?.id === size.id
+                        ? 'border-primary bg-primary/5 shadow-md'
                         : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
                     }`}
                   >
@@ -142,6 +125,44 @@ export default function ProductDetailsDialog({
                     </div>
                   </Label>
                 ))}
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* الأنواع */}
+          {hasVariants && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Tag className="w-4 h-4 text-accent-foreground" />
+                اختر النوع :
+              </p>
+              <RadioGroup
+                value={selectedVariant?.id || ""}
+                onValueChange={vid => setSelectedVariant(itemVariants.find(v => v.id === vid) || null)}
+                className="grid grid-cols-2 gap-2"
+              >
+                {itemVariants.map(variant => {
+                  const active = selectedVariant?.id === variant.id;
+                  return (
+                    <Label
+                      key={variant.id}
+                      htmlFor={`variant-${variant.id}`}
+                      className={`relative flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                        active
+                          ? 'border-accent-foreground bg-accent/40 shadow-sm'
+                          : 'border-gray-200 hover:border-accent-foreground/40 hover:bg-accent/20'
+                      }`}
+                    >
+                      <RadioGroupItem value={variant.id} id={`variant-${variant.id}`} className="w-4 h-4" />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{variant.name}</div>
+                        {variant.price != null && variant.price > 0 && (
+                          <div className="text-green-600 text-xs">+{variant.price} جنيه</div>
+                        )}
+                      </div>
+                    </Label>
+                  );
+                })}
               </RadioGroup>
             </div>
           )}
@@ -175,7 +196,7 @@ export default function ProductDetailsDialog({
               </div>
             </div>
           )}
-          
+
           {/* الكمية */}
           <div className="flex items-center justify-center">
             <p className="text-sm font-medium ml-2">الكمية :</p>
@@ -189,22 +210,20 @@ export default function ProductDetailsDialog({
               </Button>
             </div>
           </div>
-          
+
           {/* السعر الإجمالي */}
           <div className="text-center">
             <div className="text-sm text-gray-600">السعر الإجمالي :</div>
-            {selectedExtras.length > 0 && (
-              <div className="text-xs text-gray-500">
-                ({getBasePrice()} + {getExtrasTotal()} إضافات)
-              </div>
-            )}
             <div className="text-2xl font-bold text-primary">
               {getCurrentPrice() * quantity} جنيه
             </div>
           </div>
-          
-          {/* زر الإضافة */}
-          <Button onClick={handleAddToCart} className="w-full" disabled={hasMultipleSizes && !selectedSize}>
+
+          <Button
+            onClick={handleAddToCart}
+            className="w-full"
+            disabled={(hasMultipleSizes && !selectedSize) || (hasVariants && !selectedVariant)}
+          >
             <Plus className="w-4 h-4 ml-2" />
             إضافة إلى السلة ({quantity})
           </Button>
