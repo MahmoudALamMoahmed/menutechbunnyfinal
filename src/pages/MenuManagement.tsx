@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras, useAdminOffers } from "@/hooks/useAdminData";
+import { useAdminRestaurant, useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminVariants, useAdminExtras, useAdminOffers } from "@/hooks/useAdminData";
 import {
   useSaveCategory, useDeleteCategory, useSaveMenuItem, useDeleteMenuItem,
-  useSaveSize, useDeleteSize, useSaveExtra, useDeleteExtra,
+  useSaveSize, useDeleteSize, useSaveVariant, useDeleteVariant, useSaveExtra, useDeleteExtra,
   useReorderCategories, useReorderMenuItems, useReorderExtras,
   useSaveOffer, useDeleteOffer, useReorderOffers,
 } from "@/hooks/admin-mutations";
@@ -38,6 +38,7 @@ export default function MenuManagement() {
   const { data: categories = [], isLoading: categoriesLoading } = useAdminCategories(restaurantId);
   const { data: menuItems = [], isLoading: itemsLoading } = useAdminMenuItems(restaurantId);
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
+  const { data: variants = [], isLoading: variantsLoading } = useAdminVariants(restaurantId);
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
   const { data: offers = [], isLoading: offersLoading } = useAdminOffers(restaurantId);
 
@@ -50,7 +51,7 @@ export default function MenuManagement() {
   const frozenItemIds = new Set(limits?.max_items != null ? menuItems.slice(limits.max_items).map(i => i.id) : []);
   const frozenExtraIds = new Set(limits?.max_extras != null ? extras.slice(limits.max_extras).map(e => e.id) : []);
 
-  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading || offersLoading;
+  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || variantsLoading || extrasLoading || offersLoading;
 
   const saveCategoryMut = useSaveCategory(restaurantId);
   const deleteCategoryMut = useDeleteCategory(restaurantId);
@@ -58,6 +59,8 @@ export default function MenuManagement() {
   const deleteItemMut = useDeleteMenuItem(restaurantId);
   const saveSizeMut = useSaveSize(restaurantId);
   const deleteSizeMut = useDeleteSize(restaurantId);
+  const saveVariantMut = useSaveVariant(restaurantId);
+  const deleteVariantMut = useDeleteVariant(restaurantId);
   const saveExtraMut = useSaveExtra(restaurantId);
   const deleteExtraMut = useDeleteExtra(restaurantId);
   const reorderCategoriesMut = useReorderCategories(restaurantId);
@@ -67,12 +70,12 @@ export default function MenuManagement() {
   const deleteOfferMut = useDeleteOffer(restaurantId);
   const reorderOffersMut = useReorderOffers(restaurantId);
 
-  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending || saveOfferMut.isPending;
-  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending || deleteOfferMut.isPending;
+  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveVariantMut.isPending || saveExtraMut.isPending || saveOfferMut.isPending;
+  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteVariantMut.isPending || deleteExtraMut.isPending || deleteOfferMut.isPending;
 
   const [showSizesDialog, setShowSizesDialog] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "extra" | "offer"; id: string; name: string; imagePublicId?: string | null }>({ open: false, type: "category", id: "", name: "" });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: "category" | "item" | "size" | "variant" | "extra" | "offer"; id: string; name: string; imagePublicId?: string | null }>({ open: false, type: "category", id: "", name: "" });
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
@@ -228,9 +231,12 @@ export default function MenuManagement() {
         onOpenChange={setShowSizesDialog}
         selectedItemId={selectedItemId}
         sizes={sizes}
+        variants={variants}
         saving={saving}
-        onSave={(data) => saveSizeMut.mutate(data)}
-        onDelete={(id, name) => setDeleteDialog({ open: true, type: "size", id, name })}
+        onSaveSize={(data) => saveSizeMut.mutate(data)}
+        onDeleteSize={(id, name) => setDeleteDialog({ open: true, type: "size", id, name })}
+        onSaveVariant={(data) => saveVariantMut.mutate(data)}
+        onDeleteVariant={(id, name) => setDeleteDialog({ open: true, type: "variant", id, name })}
       />
 
       <DeleteConfirmDialog
@@ -245,11 +251,19 @@ export default function MenuManagement() {
               break;
             }
             case "size": deleteSizeMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
+            case "variant": deleteVariantMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
             case "extra": deleteExtraMut.mutate(deleteDialog.id, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
             case "offer": deleteOfferMut.mutate({ offerId: deleteDialog.id, imagePublicId: deleteDialog.imagePublicId }, { onSuccess: () => setDeleteDialog(p => ({ ...p, open: false })) }); break;
           }
         }}
-        title={deleteDialog.type === "category" ? "حذف القسم" : deleteDialog.type === "item" ? "حذف الصنف" : deleteDialog.type === "size" ? "حذف الحجم" : deleteDialog.type === "offer" ? "حذف العرض" : "حذف الإضافة"}
+        title={
+          deleteDialog.type === "category" ? "حذف القسم"
+          : deleteDialog.type === "item" ? "حذف الصنف"
+          : deleteDialog.type === "size" ? "حذف الحجم"
+          : deleteDialog.type === "variant" ? "حذف النوع"
+          : deleteDialog.type === "offer" ? "حذف العرض"
+          : "حذف الإضافة"
+        }
         description={`هل أنت متأكد من حذف "${deleteDialog.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
         isLoading={isDeleting}
       />
