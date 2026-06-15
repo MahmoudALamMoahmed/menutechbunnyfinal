@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Phone, MapPin, Calendar, DollarSign, Building2, Truck, CreditCard, StickyNote, ShoppingBag } from 'lucide-react';
+import { Phone, MapPin, Calendar, DollarSign, Building2, Truck, CreditCard, StickyNote, ShoppingBag, Tag } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
@@ -19,6 +19,12 @@ interface OrderItemExtra {
   price: number;
 }
 
+interface OrderItemVariant {
+  id: string;
+  name: string;
+  price: number | null;
+}
+
 interface OrderItem {
   id: string;
   name: string;
@@ -26,6 +32,7 @@ interface OrderItem {
   quantity: number;
   total: number;
   size?: OrderItemSize;
+  variant?: OrderItemVariant;
   extras?: OrderItemExtra[];
 }
 
@@ -173,7 +180,7 @@ export default function OrderCard({ order, onUpdateStatus, isUpdating }: OrderCa
             </h4>
             <div className="space-y-2">
               {items.map((item, index) => (
-                <div key={index} className="bg-muted/40 rounded-lg p-2.5 text-sm">
+                <div key={index} className="bg-muted/40 rounded-lg p-2.5 text-sm space-y-1">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <span className="font-medium">{item.name}</span>
@@ -184,6 +191,15 @@ export default function OrderCard({ order, onUpdateStatus, isUpdating }: OrderCa
                     </div>
                     <span className="font-semibold whitespace-nowrap">{item.total} جنيه</span>
                   </div>
+                  {item.variant && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-accent/40 text-accent-foreground border border-accent rounded-full px-2 py-0.5">
+                      <Tag className="w-3 h-3" />
+                      {item.variant.name}
+                      {item.variant.price != null && item.variant.price > 0 && (
+                        <span className="opacity-80">+{item.variant.price}ج</span>
+                      )}
+                    </span>
+                  )}
                   {item.extras && item.extras.length > 0 && (
                     <div className="mt-1 text-xs text-muted-foreground">
                       + {item.extras.map(e => `${e.name} (${e.price} جنيه)`).join('، ')}

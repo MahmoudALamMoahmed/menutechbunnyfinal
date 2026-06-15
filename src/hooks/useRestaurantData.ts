@@ -23,6 +23,7 @@ export function usePublicRestaurantData(username: string | undefined) {
         categories: any[];
         menu_items: any[];
         sizes: any[];
+        item_variants: any[];
         extras: any[];
         branches: any[];
         delivery_areas: any[];

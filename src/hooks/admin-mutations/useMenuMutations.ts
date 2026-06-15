@@ -189,6 +189,54 @@ export function useDeleteSize(restaurantId: string | undefined) {
   });
 }
 
+// ─── Variant Mutations (الأنواع) ────────────────────────────
+
+/** حفظ/تحديث نوع لصنف (السعر اختياري). */
+export function useSaveVariant(restaurantId: string | undefined) {
+  const { toast } = useToast();
+  const invalidate = useInvalidateMenu(restaurantId);
+
+  return useMutation({
+    mutationFn: async ({ id, menu_item_id, name, price, display_order }: { id?: string; menu_item_id: string; name: string; price: number | null; display_order: number }) => {
+      const variantData = { menu_item_id, name, price, display_order };
+      if (id) {
+        const { error } = await supabase.from('item_variants').update(variantData).eq('id', id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('item_variants').insert([variantData]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, vars) => {
+      toast({ title: vars.id ? 'تم التحديث' : 'تم الحفظ', description: vars.id ? 'تم تحديث النوع بنجاح' : 'تم إضافة النوع بنجاح' });
+      invalidate();
+    },
+    onError: () => {
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ النوع', variant: 'destructive' });
+    },
+  });
+}
+
+/** حذف نوع. */
+export function useDeleteVariant(restaurantId: string | undefined) {
+  const { toast } = useToast();
+  const invalidate = useInvalidateMenu(restaurantId);
+
+  return useMutation({
+    mutationFn: async (variantId: string) => {
+      const { error } = await supabase.from('item_variants').delete().eq('id', variantId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'تم الحذف', description: 'تم حذف النوع بنجاح' });
+      invalidate();
+    },
+    onError: () => {
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حذف النوع', variant: 'destructive' });
+    },
+  });
+}
+
 // ─── Extra Mutations ────────────────────────────────────────
 
 /** حفظ/تحديث إضافة. */

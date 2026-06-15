@@ -83,6 +83,26 @@ export function useAdminSizes(restaurantId: string | undefined) {
   });
 }
 
+export function useAdminVariants(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin_variants', restaurantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('item_variants')
+        .select('*, menu_items!inner(restaurant_id)')
+        .eq('menu_items.restaurant_id', restaurantId!)
+        .order('display_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!restaurantId,
+    staleTime: ADMIN_STALE,
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
+
+
 export function useAdminExtras(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_extras', restaurantId],

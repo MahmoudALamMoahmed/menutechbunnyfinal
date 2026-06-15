@@ -51,6 +51,7 @@ export default function Restaurant() {
   const allCategories = publicData?.categories ?? [];
   const allMenuItems = publicData?.menu_items ?? [];
   const sizes = publicData?.sizes ?? [];
+  const variants = publicData?.item_variants ?? [];
   const allExtras = publicData?.extras ?? [];
   const allBranches = publicData?.branches ?? [];
   const deliveryAreas = publicData?.delivery_areas ?? [];
@@ -291,7 +292,9 @@ export default function Restaurant() {
 
       {/* Product Details Dialog */}
       <ProductDetailsDialog open={showProductDialog} onOpenChange={setShowProductDialog} item={selectedProduct}
-        sizes={sizes.filter(s => s.menu_item_id === selectedProduct?.id)} extras={extras} onAddToCart={addToCart} />
+        sizes={sizes.filter(s => s.menu_item_id === selectedProduct?.id)}
+        variants={variants.filter(v => v.menu_item_id === selectedProduct?.id)}
+        extras={extras} onAddToCart={addToCart} />
 
       {/* Restaurant Footer */}
       <RestaurantFooter restaurant={restaurant} branches={branches} />

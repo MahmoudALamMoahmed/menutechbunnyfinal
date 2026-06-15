@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PaymentMethodSection from '@/components/PaymentMethodSection';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,8 +22,8 @@ interface CartDialogProps {
   branches: Branch[];
   deliveryAreas: DeliveryArea[];
   getTotalPrice: () => number;
-  addToCart: (item: any, size?: any, extras?: any[]) => void;
-  removeFromCart: (itemId: string, sizeId?: string, extrasKey?: string) => void;
+  addToCart: (item: any, size?: any, extras?: any[], variant?: any) => void;
+  removeFromCart: (itemId: string, sizeId?: string, variantId?: string, extrasKey?: string) => void;
   clearCart: () => void;
   restaurant: { id: string; name: string; [key: string]: any };
   limits: any;
@@ -90,6 +90,7 @@ export default function CartDialog({
       id: item.id, name: item.name, price: item.price, quantity: item.quantity,
       total: item.price * item.quantity,
       size: item.selectedSize ? { id: item.selectedSize.id, name: item.selectedSize.name, price: item.selectedSize.price } : undefined,
+      variant: item.selectedVariant ? { id: item.selectedVariant.id, name: item.selectedVariant.name, price: item.selectedVariant.price } : undefined,
       extras: item.selectedExtras?.map(e => ({ id: e.id, name: e.name, price: e.price })),
     }));
     return { branch, area, orderItems };
@@ -139,8 +140,9 @@ export default function CartDialog({
 
       const orderText = cart.map(item => {
         const sizeText = item.selectedSize ? ` (${item.selectedSize.name})` : '';
+        const variantText = item.selectedVariant ? ` 🏷️ ${item.selectedVariant.name}` : '';
         const extrasText = item.selectedExtras?.length ? ` + ${item.selectedExtras.map(e => e.name).join(', ')}` : '';
-        return `${item.quantity} - ${item.name}${sizeText}${extrasText} = ${item.price * item.quantity} جنيه`;
+        return `${item.quantity} - ${item.name}${sizeText}${variantText}${extrasText} = ${item.price * item.quantity} جنيه`;
       }).join('\n');
 
       const branchText = branchName ? `\n🏪 الفرع: ${branchName}` : '';
@@ -185,8 +187,8 @@ export default function CartDialog({
             {cart.map(item => {
               const extrasKey = item.selectedExtras?.map(e => e.id).sort().join(',') || '';
               return (
-                <div key={`${item.id}-${item.selectedSize?.id || 'no-size'}-${extrasKey}`} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <div className="flex-1">
+                <div key={`${item.id}-${item.selectedSize?.id || 'no-size'}-${item.selectedVariant?.id || 'no-variant'}-${extrasKey}`} className="flex justify-between items-start p-2 bg-gray-50 rounded">
+                  <div className="flex-1 space-y-1">
                     <div className="font-medium">
                       {item.name}
                       {item.selectedExtras && item.selectedExtras.length > 0 && (
@@ -196,14 +198,23 @@ export default function CartDialog({
                       )}
                     </div>
                     {item.selectedSize && <div className="text-xs text-gray-500">الحجم: {item.selectedSize.name}</div>}
+                    {item.selectedVariant && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium bg-accent/40 text-accent-foreground border border-accent rounded-full px-2 py-0.5">
+                        <Tag className="w-3 h-3" />
+                        {item.selectedVariant.name}
+                        {item.selectedVariant.price != null && item.selectedVariant.price > 0 && (
+                          <span className="text-[10px] opacity-80">+{item.selectedVariant.price}ج</span>
+                        )}
+                      </span>
+                    )}
                     <div className="text-sm text-gray-600">{item.price} جنيه × {item.quantity}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id, item.selectedSize?.id, extrasKey)}>
+                    <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id, item.selectedSize?.id, item.selectedVariant?.id, extrasKey)}>
                       <Minus className="w-3 h-3" />
                     </Button>
                     <span className="font-medium">{item.quantity}</span>
-                    <Button size="sm" onClick={() => addToCart(item, item.selectedSize, item.selectedExtras)}>
+                    <Button size="sm" onClick={() => addToCart(item, item.selectedSize, item.selectedExtras, item.selectedVariant)}>
                       <Plus className="w-3 h-3" />
                     </Button>
                   </div>
