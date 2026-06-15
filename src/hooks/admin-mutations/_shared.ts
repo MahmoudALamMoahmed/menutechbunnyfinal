@@ -8,11 +8,14 @@ export function useInvalidateMenu(restaurantId: string | undefined) {
     qc.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
     qc.invalidateQueries({ queryKey: ['admin_menu_items', restaurantId] });
     qc.invalidateQueries({ queryKey: ['admin_sizes', restaurantId] });
+    qc.invalidateQueries({ queryKey: ['admin_variants', restaurantId] });
     qc.invalidateQueries({ queryKey: ['admin_extras', restaurantId] });
     qc.invalidateQueries({ queryKey: ['categories', restaurantId] });
     qc.invalidateQueries({ queryKey: ['menu_items', restaurantId] });
     qc.invalidateQueries({ queryKey: ['sizes', restaurantId] });
+    qc.invalidateQueries({ queryKey: ['item_variants', restaurantId] });
     qc.invalidateQueries({ queryKey: ['extras', restaurantId] });
+    qc.invalidateQueries({ queryKey: ['public_restaurant_data'] });
   };
 }
 
