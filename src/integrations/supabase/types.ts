@@ -328,6 +328,44 @@ export type Database = {
           },
         ]
       }
+      item_variants: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          menu_item_id: string
+          name: string
+          price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          menu_item_id: string
+          name: string
+          price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          menu_item_id?: string
+          name?: string
+          price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_variants_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           category_id: string | null
