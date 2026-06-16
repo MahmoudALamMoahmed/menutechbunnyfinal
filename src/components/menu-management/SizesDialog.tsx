@@ -101,7 +101,7 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
 
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+          <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <p className="font-medium">{item.name}</p>
               <p className="text-sm text-muted-foreground">
