@@ -139,7 +139,7 @@ export default function SizesDialog({
           <DialogTitle>إدارة الأحجام والأنواع</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="sizes" className="w-full">
+        <Tabs defaultValue="sizes" dir="rtl" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="sizes" className="flex items-center gap-2">
               <Ruler className="w-4 h-4" />
@@ -157,6 +157,7 @@ export default function SizesDialog({
               saving={saving}
               priceOptional={false}
               emptyText="لا توجد أحجام مضافة بعد"
+              namePlaceholder="مثال: صغير، وسط، كبير"
               pricePlaceholder="0.00"
               onSave={({ id, name, price, display_order }) => {
                 if (!selectedItemId) return;
@@ -172,6 +173,7 @@ export default function SizesDialog({
               saving={saving}
               priceOptional
               emptyText="لا توجد أنواع مضافة بعد"
+              namePlaceholder="مثال: كلاسيك، حار، نباتي"
               pricePlaceholder="اختياري"
               onSave={({ id, name, price, display_order }) => {
                 if (!selectedItemId) return;
