@@ -68,14 +68,16 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
 
   return (
     <div className="space-y-4">
-      <div className="bg-muted/40 p-4 rounded-lg space-y-4">
+      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
         <div>
           <Label htmlFor="opt-name">الاسم</Label>
           <Input id="opt-name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: صغير، وسط، كبير" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="opt-price">السعر {priceOptional && <span className="text-xs text-muted-foreground">(اختياري)</span>}</Label>
+            <Label htmlFor="opt-price">
+              السعر {priceOptional && <span className="text-xs text-muted-foreground">(اختياري)</span>}
+            </Label>
             <Input id="opt-price" type="number" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={pricePlaceholder} />
           </div>
           <div>
@@ -119,6 +121,7 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
     </div>
   );
 }
+
 
 export default function SizesDialog({
   open, onOpenChange, selectedItemId, sizes, variants, saving,
