@@ -32,6 +32,7 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
   saving,
   priceOptional,
   emptyText,
+  namePlaceholder,
   pricePlaceholder,
   onSave,
   onDelete,
@@ -40,6 +41,7 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
   saving: boolean;
   priceOptional: boolean;
   emptyText: string;
+  namePlaceholder: string;
   pricePlaceholder: string;
   onSave: (payload: { id?: string; name: string; price: number | null; display_order: number }) => void;
   onDelete: (id: string, name: string) => void;
@@ -67,22 +69,22 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       <div className="bg-gray-50 p-4 rounded-lg space-y-4">
         <div>
           <Label htmlFor="opt-name">الاسم</Label>
-          <Input id="opt-name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: صغير، وسط، كبير" />
+          <Input id="opt-name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={namePlaceholder} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="opt-price">
               السعر {priceOptional && <span className="text-xs text-muted-foreground">(اختياري)</span>}
             </Label>
-            <Input id="opt-price" type="number" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={pricePlaceholder} />
+            <Input id="opt-price" type="number" step="0.01" dir="ltr" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder={pricePlaceholder} />
           </div>
           <div>
             <Label htmlFor="opt-order">ترتيب العرض</Label>
-            <Input id="opt-order" type="number" value={form.display_order} onChange={e => setForm(p => ({ ...p, display_order: parseInt(e.target.value) || 0 }))} />
+            <Input id="opt-order" type="number" dir="ltr" value={form.display_order} onChange={e => setForm(p => ({ ...p, display_order: parseInt(e.target.value) || 0 }))} />
           </div>
         </div>
         {priceOptional && (
@@ -99,7 +101,7 @@ function OptionForm<T extends { id: string; name: string; price: number | null; 
 
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-3 bg-background border rounded-lg">
+          <div key={item.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
             <div>
               <p className="font-medium">{item.name}</p>
               <p className="text-sm text-muted-foreground">
@@ -137,7 +139,7 @@ export default function SizesDialog({
           <DialogTitle>إدارة الأحجام والأنواع</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="sizes" className="w-full">
+        <Tabs defaultValue="sizes" dir="rtl" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="sizes" className="flex items-center gap-2">
               <Ruler className="w-4 h-4" />
@@ -155,6 +157,7 @@ export default function SizesDialog({
               saving={saving}
               priceOptional={false}
               emptyText="لا توجد أحجام مضافة بعد"
+              namePlaceholder="مثال: صغير، وسط، كبير"
               pricePlaceholder="0.00"
               onSave={({ id, name, price, display_order }) => {
                 if (!selectedItemId) return;
@@ -170,6 +173,7 @@ export default function SizesDialog({
               saving={saving}
               priceOptional
               emptyText="لا توجد أنواع مضافة بعد"
+              namePlaceholder="مثال: كلاسيك، حار، نباتي"
               pricePlaceholder="اختياري"
               onSave={({ id, name, price, display_order }) => {
                 if (!selectedItemId) return;
