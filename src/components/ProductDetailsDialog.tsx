@@ -133,31 +133,32 @@ export default function ProductDetailsDialog({
           {hasVariants && (
             <div className="space-y-3">
               <p className="text-sm font-medium flex items-center gap-2">
-                <Tag className="w-4 h-4 text-accent-foreground" />
+                <Tag className="w-4 h-4 text-primary" />
                 اختر النوع :
               </p>
               <RadioGroup
                 value={selectedVariant?.id || ""}
                 onValueChange={vid => setSelectedVariant(itemVariants.find(v => v.id === vid) || null)}
-                className="grid grid-cols-2 gap-2"
+                className="grid grid-cols-3 gap-3"
               >
                 {itemVariants.map(variant => {
                   const active = selectedVariant?.id === variant.id;
+                  const hasPrice = variant.price != null && variant.price > 0;
                   return (
                     <Label
                       key={variant.id}
                       htmlFor={`variant-${variant.id}`}
-                      className={`relative flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                      className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 text-center ${
                         active
-                          ? 'border-accent-foreground bg-accent/40 shadow-sm'
-                          : 'border-gray-200 hover:border-accent-foreground/40 hover:bg-accent/20'
+                          ? 'border-primary bg-accent/40 shadow-md'
+                          : 'border-gray-200 hover:border-primary/50 hover:bg-accent/10'
                       }`}
                     >
-                      <RadioGroupItem value={variant.id} id={`variant-${variant.id}`} className="w-4 h-4" />
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{variant.name}</div>
-                        {variant.price != null && variant.price > 0 && (
-                          <div className="text-green-600 text-xs">+{variant.price} جنيه</div>
+                      <RadioGroupItem value={variant.id} id={`variant-${variant.id}`} className="absolute top-2 right-2 w-5 h-5" />
+                      <div className="space-y-2">
+                        <div className="font-semibold text-gray-800">{variant.name}</div>
+                        {hasPrice && (
+                          <div className="text-green-600 font-bold text-sm">+{variant.price} جنيه</div>
                         )}
                       </div>
                     </Label>
@@ -166,6 +167,7 @@ export default function ProductDetailsDialog({
               </RadioGroup>
             </div>
           )}
+
 
           {/* الإضافات */}
           {hasExtras && (
