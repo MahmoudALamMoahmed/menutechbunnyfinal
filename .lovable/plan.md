@@ -1,68 +1,82 @@
-# تقرير تدقيق: هل `public_restaurants` أصبح غير ضروري؟
+# تقرير تدقيق: صلاحيات الكتابة على جدول `restaurants`
 
-## 1. هل هو مستخدم حاليًا؟ نعم — ولا يزال ضروريًا
+**لم يُنفَّذ أي تعديل. تحليل فقط.**
 
-`public_restaurants` **ليس** مستخدمًا فقط داخل `get_public_restaurant_data`. يوجد مسارَان في الـ frontend يقرآن منه مباشرة:
+## 1. الوضع الفعلي للصلاحيات (مؤكد بالاستعلام)
 
-| المكان | الكود | لماذا يحتاجه |
+| الدور | الصلاحيات الحالية على `restaurants` |
+|---|---|
+| `anon` | INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES, MAINTAIN — **وبدون SELECT** |
+| `authenticated` | SELECT + INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES, MAINTAIN |
+| `service_role` | كل الصلاحيات |
+| `postgres` | كل الصلاحيات |
+
+سبب وجود صلاحيات `anon` غير المنطقية: إنها من الـ **default grants القديمة** لمخطط `public` في Supabase (كان `GRANT ALL ON ALL TABLES ... TO anon, authenticated` يُطبَّق تلقائيًا عند إنشاء المشروع). لا يوجد أي كود في المشروع يطلبها. لاحظ التناقض الدال: `anon` يملك DELETE ولا يملك SELECT — لم يمنحها أحد بنيّة، فهي إرث تلقائي. (سُحب SELECT سابقًا لأنه كان الخطر الظاهر، وبقيت صلاحيات الكتابة.)
+
+## 2. كل عمليات الكتابة على `restaurants` في المشروع
+
+| الموقع | العملية | الدور المُنفِّذ فعليًا |
 |---|---|---|
-| `src/hooks/useRestaurantData.ts` (`useRestaurant`) | `.from('public_restaurants').select('*').eq('username', …)` | يُستدعى من `src/components/ProtectedRoute.tsx` للتحقق من ملكية المطعم قبل فتح صفحات لوحة التحكم |
-| `src/hooks/useAvailabilityCheck.ts` (`useUsernameAvailability`) | `.from('public_restaurants').select('id').eq('username', …)` | يُستدعى من `src/pages/Auth.tsx` للتحقق من توفر اسم المستخدم أثناء التسجيل |
+| `src/hooks/useAuth.tsx` سطر ~167 (`ensureRestaurantExists`) | INSERT مع `owner_id: user.id` | `authenticated` — الدالة تعود مباشرة بخطأ لو `!user`، فلا تُنفَّذ إطلاقًا بدور `anon` |
+| `src/hooks/admin-mutations/useRestaurantMutations.ts` سطر 14 | UPDATE ... eq('id', id) | `authenticated` (داخل لوحة تحكم محمية بـ `ProtectedRoute`) |
+| `src/hooks/admin-mutations/useRestaurantMutations.ts` سطر 17 | INSERT مع `owner_id: ownerId` | `authenticated` |
 
-بالإضافة إلى استخدام الدالة نفسها. أيضًا `src/components/RestaurantFooter.tsx` يستنتج نوعه من `Tables<'public_restaurants'>` (نوع TypeScript فقط، لا استعلام).
+- **DELETE**: لا يوجد أي كود في المشروع يحذف صفًّا من `restaurants` — لا في الـ frontend، ولا في Super Admin (فحصت `useSuperAdminMutations.ts` و`RestaurantsTab.tsx`: قراءة فقط). سياسة الحذف موجودة في RLS لكن لا مستهلك لها.
+- **دوال قاعدة البيانات**: فحصت كل دوال `public`؛ الدالتان الوحيدتان التي تذكران `restaurants` هما `get_public_restaurant_data` و`validate_order_insert`، وكلتاهما **قراءة فقط**. لا توجد أي دالة `SECURITY DEFINER` تكتب في `restaurants`.
+- **Edge Functions**: `bunny-upload`، `bunny-delete`، `create-branch-staff`، `delete-branch-staff`، `create-payment-session` كلها تستعلم `restaurants` بـ `select('id')` للتحقق من الملكية فقط. لا كتابة. (ولو كتبت، فهي تستخدم `service_role` غير المتأثر.)
 
-لا يوجد أي استخدام له في أي Edge Function (تم فحص كل الملفات في `supabase/functions`).
+## 3. تدفق إنشاء المطعم عند التسجيل
 
-## 2. تعريف الدالة والـ view (حالة فعلية مؤكدة)
+1. `signUp()` ينشئ حساب Supabase Auth ويخزن `{username, restaurantName}` في `localStorage` فقط — **لا لمس لجدول `restaurants` هنا**.
+2. بعد وجود جلسة (تأكيد الإيميل أو جلسة فورية) يُنادى `ensureRestaurantExists()`، وهو يبدأ بـ `if (!user) return` ثم `INSERT` بـ `owner_id: user.id`.
+3. الدور المُنفِّذ: `authenticated` (الـ JWT موجود).
+4. سياسة RLS للإدخال: `WITH CHECK (auth.uid() = owner_id)` — فلا يمكن لأحد إنشاء مطعم باسم مالك آخر، ولا يمكن لـ `anon` تمريرها أصلًا لأن `auth.uid()` تكون NULL.
+5. **سحب INSERT من `anon` لن يعطّل التسجيل**، لأن الإدخال لا يحدث أبدًا قبل توفر الجلسة.
+6. فحص توفر اسم المستخدم في `Auth.tsx` يقرأ من الـ view `public_restaurants` (لا من الجدول)، فلا يتأثر.
 
-- `get_public_restaurant_data` هي `SECURITY DEFINER` وتبدأ بـ:
-  `SELECT * INTO v_restaurant FROM public_restaurants WHERE username = p_username`
-  ثم تقرأ مباشرةً من الجداول: `categories`, `menu_items`, `sizes`, `item_variants`, `extras`, `branches`, `delivery_areas`, `offers`.
-  فهي تعتمد على view واحد فقط هو `public_restaurants`.
-- `public_restaurants` = `SELECT` بأعمدة محددة من `restaurants` (بدون `owner_id` وبدون `email`)، وخصائصه `security_invoker=off` أي يعمل بصلاحيات المالك ويتجاوز RLS.
-- الصلاحيات الحالية بعد إصلاح الأمس: `anon` و`authenticated` لهما `SELECT` فقط. `postgres` و`service_role` لهما كل الصلاحيات.
-- سياسات RLS على `restaurants` لا تسمح لـ `anon` بأي قراءة، و`authenticated` يقرأ مطعمه فقط أو مطعم فرعه أو الكل لو super_admin. لذلك **القراءة العامة للمنيو تعتمد كليًا على تجاوز الـ view لـ RLS**.
+## 4. تدفقات صاحب المطعم / المشرف
 
-## 3. هل يمكن للـ RPC القراءة من `restaurants` مباشرة؟
+- **تحديث بيانات المطعم** (`RestaurantInfo.tsx` → `useSaveRestaurant`): `authenticated` + سياسة `USING (auth.uid() = owner_id)`. ملاحظة: سياسة التحديث ليس لها `WITH CHECK`، ما يعني نظريًا أن المالك يستطيع تغيير `owner_id` لمطعمه إلى مستخدم آخر (تسليم ملكية غير مقصود). خارج نطاق هذا التدقيق لكن يستحق التسجيل.
+- **حذف مطعم**: غير مستخدم من التطبيق أصلًا (السياسة موجودة، لا واجهة تستدعيها).
+- **الإعدادات الأخرى** (الشعار/الغلاف/السوشيال/ساعات العمل): كلها UPDATE عبر نفس الـ mutation، دور `authenticated`.
+- **Super Admin**: قراءة فقط على `restaurants` عبر سياسة `super_admin_read_all_restaurants`.
 
-تقنيًا نعم: الدالة `SECURITY DEFINER` فتتجاوز RLS بنفسها، ولا حاجة للـ view من ناحية الوصول. لكن الـ view يقوم بدور **column allow-list**: `SELECT *` من الـ view يُرجع 14 عمودًا آمنًا فقط. لو صارت `SELECT * FROM restaurants` فسيدخل `owner_id` و`email` إلى الـ JSON الذي يُرسل لكل زائر مجهول — وهو تسريب بيانات فوري. أي تحويل يجب أن يستبدل `SELECT *` بقائمة أعمدة صريحة (`to_jsonb(json_build_object(...))`) وهذا يعني نسخ الـ allow-list داخل الدالة.
+## 5. الحد الأدنى الموصى به لكل دور
 
-## 4. هل يمكن حذفه بأمان؟ لا
+| الدور | المطلوب فعلًا | ما يجب سحبه |
+|---|---|---|
+| `anon` | **لا شيء** على `restaurants`. القراءة العامة تمر عبر الـ view `public_restaurants` وعبر `get_public_restaurant_data` (SECURITY DEFINER) | INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES, MAINTAIN |
+| `authenticated` | SELECT, INSERT, UPDATE (وDELETE إن أردت الاحتفاظ بمسار حذف مستقبلي؛ حاليًا غير مستخدم) | TRUNCATE, TRIGGER, REFERENCES, MAINTAIN |
+| `service_role` | كل الصلاحيات (تبقى كما هي) | لا شيء |
+| `postgres` | كما هي | لا شيء |
 
-الحذف الآن سيُعطّل:
-- `ProtectedRoute` → كل صفحات لوحة التحكم (`/:username/dashboard` وما يتبعها) تفشل في التحقق من الملكية.
-- شاشة التسجيل في `Auth.tsx` → فحص توفر اسم المستخدم.
-- `get_public_restaurant_data` → صفحة المنيو العامة بالكامل حتى تُعاد كتابة الدالة.
-- أنواع TypeScript في `RestaurantFooter.tsx` (خطأ build).
+## 6. الإجابة المباشرة: نعم، يمكن سحب كل صلاحيات الكتابة من `anon` بأمان
 
-المسارات التي لا تتأثر: الطلبات، الفروع، المحفظة/الاشتراكات، Super Admin، كل الـ Edge Functions، والمصادقة نفسها (Supabase Auth).
+لن يتأثر: التسجيل، إنشاء المطعم، لوحة التحكم، تعديل المطعم، حذف المطعم (غير مستخدم)، المنيو العام، أي Edge Function، أي دالة RPC.
+السبب: لا يوجد سطر واحد في المشروع يكتب في `restaurants` بدون جلسة مستخدم، والقراءة العامة لا تمر بالجدول مباشرة.
 
-## 5. مقارنة المعمارية
+## 7. التغييرات الموصى بها بالضبط (للتنفيذ بعد موافقتك)
 
-```text
-الحالية:  Customer → RPC (definer) → public_restaurants (invoker=off, أعمدة آمنة) → restaurants
-          Owner/Signup → PostgREST → public_restaurants (SELECT فقط) → restaurants
+```sql
+-- 1) سحب كل صلاحيات الكتابة الموروثة عن الزائر المجهول
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES
+  ON TABLE public.restaurants FROM anon;
 
-المقترحة: Customer → RPC (definer) → restaurants
-          Owner/Signup → ؟ (يحتاج بديلًا: RPC جديدة أو سياسة RLS عامة على restaurants)
+-- 2) سحب الصلاحيات الزائدة عن المستخدم المسجّل (تبقى SELECT/INSERT/UPDATE/DELETE)
+REVOKE TRUNCATE, TRIGGER, REFERENCES
+  ON TABLE public.restaurants FROM authenticated;
 ```
 
-المقترحة توفّر طبقة واحدة داخل الـ RPC فقط، لكنها تُجبرنا على بناء بديلين إضافيين لمساري لوحة التحكم والتسجيل، وتنقل حماية الأعمدة من تعريف مركزي واحد إلى داخل نص الدالة.
+ملاحظات تنفيذية:
+- لا يُلمس `service_role` ولا `postgres`، فالـ Edge Functions تعمل كما هي.
+- `MAINTAIN` صلاحية PG 17 وتُسحب ضمنًا مع `REVOKE ALL`؛ لو أردت ضمان سحبها نستخدم `REVOKE ALL` على `anon` (آمن لأن `anon` لا يحتاج SELECT على الجدول) بدل التعداد.
+- لا تغيير على أي سياسة RLS ولا على الـ view ولا على كود التطبيق.
 
-## 6. الأمان: من هو security boundary؟
+### التحقق المقترح بعد التنفيذ
+1. استعلام `aclexplode` لتأكيد أن `anon` لم يبقَ له أي صلاحية على `restaurants`.
+2. محاولة PATCH/DELETE بمفتاح anon عبر `curl` → يجب أن ترجع `permission denied`.
+3. فتح صفحة منيو عامة + تسجيل مستخدم جديد + تعديل بيانات مطعم من اللوحة للتأكد أن كل شيء يعمل.
 
-- الـ RPC هو حدّ أمني جيد **للمنيو العام**: مدخل واحد (`username`)، مخرج JSON ثابت، لا يسمح للعميل باختيار أعمدة أو فلاتر.
-- لكن الـ view يبقى حدًّا أمنيًا مستقلًا ومفيدًا: هو الوسيلة الوحيدة الحالية التي تتيح قراءة عامة/شبه عامة لبيانات المطعم دون فتح `SELECT` لـ `anon` على `restaurants`. إزالته ستدفع للحل الأسوأ (سياسة RLS عامة على `restaurants` = تسريب `owner_id`/`email`).
-- مخاطر جعل الـ RPC يقرأ من `restaurants` مباشرة: تسريب `owner_id`/`email` عند `SELECT *`، وضياع الـ allow-list المركزي، واحتمال أن أي عمود حساس يُضاف مستقبلًا إلى `restaurants` يظهر تلقائيًا للجمهور.
+## 8. بند إضافي رصدته (لا يشمله الإصلاح المقترح)
 
-## 7. ملاحظة خارج النطاق (لم يُطلب إصلاحها الآن)
-
-الاستعلام على الصلاحيات كشف أن `anon` لا يزال يملك `INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES, MAINTAIN` على جدول `restaurants` نفسه (لا يملك `SELECT`). الحماية الحالية هي RLS فقط، وسياسة الإنشاء `(auth.uid() = owner_id)` تنطبق على دور `public`. الخطر عمليًا محجوز بـ RLS، لكن هذه صلاحيات زائدة لا مبرر لها ويُستحسن سحبها في مهمة أمنية لاحقة.
-
-## 8. التوصية: الإبقاء على `public_restaurants`
-
-- المكاسب من الحذف صغيرة: طبقة واحدة أقل وتنظيف مفهومي. لا ربح في الأداء (الـ view مجرد rewrite ولا يضيف تكلفة تنفيذ).
-- التكلفة كبيرة: إعادة كتابة الدالة بقائمة أعمدة صريحة + بناء بديلين لـ `ProtectedRoute` والتسجيل + تعديل أنواع TypeScript + مخاطر تسريب أعمدة.
-- الأفضل تركه كما هو الآن، وإن أردت التنظيف لاحقًا يكون على مرحلتين: أولًا تحويل `ProtectedRoute` والتسجيل إلى RPC مخصصة صغيرة، وبعد أن يصبح الـ view بلا أي مستخدم غير الدالة يُعاد تقييم حذفه.
-
-**لم يُنفّذ أي تعديل. هذا تحليل فقط.** وافق إن أردتني أن أنتقل لأي من الخطوات المقترحة.
+سياسة `أصحاب المطاعم يمكنهم تحديث مطعمهم` بلا `WITH CHECK`، وسياستا الإنشاء/التحديث/الحذف مُعرَّفة لدور `public` بدل `authenticated`. الأثر العملي محدود لأن `auth.uid()` تكون NULL للزائر، لكن تضييقها لاحقًا يعطي طبقة دفاع إضافية. أذكرها للعلم فقط ولم أدرجها في التغييرات المقترحة احترامًا لنطاق طلبك.
