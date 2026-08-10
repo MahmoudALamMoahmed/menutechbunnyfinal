@@ -1012,6 +1012,21 @@ export type Database = {
         Args: { p_items: Json; p_table_name: string }
         Returns: undefined
       }
+      create_order: {
+        Args: {
+          p_branch_id: string
+          p_customer_address: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_area_id: string
+          p_items: Json
+          p_notes?: string
+          p_order_source: string
+          p_payment_method: string
+          p_restaurant_username: string
+        }
+        Returns: Json
+      }
       expire_pending_transactions: { Args: never; Returns: number }
       get_analytics_summary: {
         Args: {
