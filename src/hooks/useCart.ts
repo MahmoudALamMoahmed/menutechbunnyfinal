@@ -14,6 +14,7 @@ export interface CartItem extends MenuItem {
   selectedVariant?: Variant;
   selectedExtras?: Extra[];
   is_offer?: boolean;
+  offer_id?: string;
 }
 
 // مفتاح فريد لتمييز عناصر السلة (يشمل النوع والحجم والإضافات)
