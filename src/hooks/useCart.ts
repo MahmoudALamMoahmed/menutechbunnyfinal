@@ -14,6 +14,7 @@ export interface CartItem extends MenuItem {
   selectedVariant?: Variant;
   selectedExtras?: Extra[];
   is_offer?: boolean;
+  offer_id?: string;
 }
 
 // مفتاح فريد لتمييز عناصر السلة (يشمل النوع والحجم والإضافات)
@@ -40,7 +41,7 @@ export function useCart() {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // إضافة صنف للسلة مع دعم الأحجام والأنواع والإضافات
-  const addToCart = useCallback((item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[], selectedVariant?: Variant) => {
+  const addToCart = useCallback((item: MenuItem & { offer_id?: string }, selectedSize?: Size, selectedExtras?: Extra[], selectedVariant?: Variant) => {
     const extrasTotal = selectedExtras?.reduce((sum, e) => sum + e.price, 0) || 0;
     const basePrice = selectedSize ? selectedSize.price : item.price;
     const variantPrice = selectedVariant?.price ?? 0;

@@ -76,7 +76,7 @@ export default function Restaurant() {
 
   // UI State (only view-related, no customer data)
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
-  const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<(MenuItem & { offer_id?: string }) | null>(null);
   const [showProductDialog, setShowProductDialog] = useState(false);
 
   const isOwner = !!user && !!restaurant && username === restaurant.username && !isBranchStaff;
@@ -100,13 +100,14 @@ export default function Restaurant() {
           description: offer.description ?? linked.description,
           image_url: offer.image_url ?? linked.image_url,
           price: offer.price,
+          offer_id: offer.id,
         });
         setShowProductDialog(true);
         return;
       }
     }
     // عرض مستقل → بدون أحجام/إضافات
-    setSelectedProduct(offerToMenuItem(offer));
+    setSelectedProduct({ ...offerToMenuItem(offer), offer_id: offer.id });
     setShowProductDialog(true);
   }, [allMenuItems]);
 
