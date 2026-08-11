@@ -83,66 +83,98 @@ export default function CartDialog({
     return true;
   };
 
-  const buildOrderData = () => {
-    const branch = branches.find(b => b.id === selectedBranch);
-    const area = deliveryAreas.find(a => a.id === selectedArea);
-    const orderItems = cart.map(item => ({
-      id: item.id, name: item.name, price: item.price, quantity: item.quantity,
-      total: item.price * item.quantity,
-      size: item.selectedSize ? { id: item.selectedSize.id, name: item.selectedSize.name, price: item.selectedSize.price } : undefined,
-      variant: item.selectedVariant ? { id: item.selectedVariant.id, name: item.selectedVariant.name, price: item.selectedVariant.price } : undefined,
-      extras: item.selectedExtras?.map(e => ({ id: e.id, name: e.name, price: e.price })),
+  // نُرسل معرّفات وكميات فقط — كل الأسعار تُحسب في السيرفر داخل create_order
+  const buildRpcItems = () =>
+    cart.map(item => ({
+      menu_item_id: item.offer_id ? null : item.id,
+      offer_id: item.offer_id ?? null,
+      size_id: item.selectedSize?.id ?? null,
+      variant_id: item.selectedVariant?.id ?? null,
+      extra_ids: item.selectedExtras?.map(e => e.id) ?? [],
+      quantity: item.quantity,
     }));
-    return { branch, area, orderItems };
+
+  const ERROR_MESSAGES: Record<string, string> = {
+    RESTAURANT_NOT_FOUND: 'المطعم غير موجود',
+    INVALID_CUSTOMER_DATA: 'بيانات العميل غير صحيحة، تأكد من الاسم والعنوان ورقم الهاتف',
+    INVALID_ORDER_SOURCE: 'مصدر الطلب غير صالح',
+    BRANCH_REQUIRED: 'يرجى اختيار الفرع',
+    INVALID_BRANCH: 'الفرع المختار غير متاح',
+    DELIVERY_AREA_REQUIRED: 'يرجى اختيار منطقة التوصيل',
+    INVALID_DELIVERY_AREA: 'منطقة التوصيل غير متاحة',
+    INVALID_PAYMENT_METHOD: 'طريقة الدفع غير متاحة',
+    EMPTY_CART: 'السلة فارغة',
+    TOO_MANY_ITEMS: 'عدد الأصناف كبير جداً',
+    RATE_LIMITED: 'لقد أرسلت طلبات كثيرة، يرجى المحاولة بعد قليل',
+    INVALID_ITEM_REFERENCE: 'أحد الأصناف غير صالح',
+    INVALID_QUANTITY: 'الكمية غير صحيحة',
+    INVALID_MENU_ITEM: 'أحد الأصناف غير متاح حالياً',
+    INVALID_OFFER: 'العرض غير متاح حالياً',
+    INVALID_SIZE: 'الحجم المختار غير متاح',
+    SIZE_REQUIRED: 'يرجى اختيار الحجم',
+    INVALID_VARIANT: 'النوع المختار غير متاح',
+    VARIANT_REQUIRED: 'يرجى اختيار النوع',
+    INVALID_EXTRA: 'إحدى الإضافات غير متاحة',
+    TOO_MANY_EXTRAS: 'عدد الإضافات كبير جداً',
+    INVALID_PRICE: 'حدث خطأ في حساب السعر',
+  };
+
+  const translateError = (error: any): string => {
+    const raw = (error?.message || '') as string;
+    for (const code of Object.keys(ERROR_MESSAGES)) {
+      if (raw.includes(code)) return ERROR_MESSAGES[code];
+    }
+    return 'حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى';
+  };
+
+  const submitOrder = async (orderSource: 'dashboard' | 'whatsapp') => {
+    const { data, error } = await supabase.rpc('create_order', {
+      p_restaurant_username: restaurant.username,
+      p_branch_id: selectedBranch || null,
+      p_delivery_area_id: selectedArea || null,
+      p_customer_name: customerName,
+      p_customer_phone: customerPhone,
+      p_customer_address: customerAddress,
+      p_payment_method: paymentMethod,
+      p_order_source: orderSource,
+      p_items: buildRpcItems() as any,
+    } as any);
+    if (error) throw error;
+    return data as any;
   };
 
   const sendOrderToDashboard = async () => {
     if (!validateOrder()) return;
     try {
-      const { branch, area, orderItems } = buildOrderData();
-      const { error } = await supabase.from('orders').insert({
-        restaurant_id: restaurant.id, branch_id: selectedBranch || null, delivery_area_id: selectedArea || null,
-        customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress,
-        payment_method: paymentMethod, items: orderItems as any, total_price: getFinalTotal(),
-        notes: area ? `المنطقة: ${area.name} - الفرع: ${branch?.name || ''}` : (branch?.name ? `الفرع: ${branch.name}` : null),
-        status: 'pending',
-      });
-      if (error) throw error;
+      await submitOrder('dashboard');
       resetOrderState();
       toast({ title: 'تم إرسال الطلب', description: 'تم إرسال طلبك بنجاح وسيتم التواصل معك قريباً' });
     } catch (error) {
       console.error('خطأ في إرسال الطلب:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى', variant: 'destructive' });
+      toast({ title: 'خطأ', description: translateError(error), variant: 'destructive' });
     }
   };
 
   const sendOrderToWhatsApp = async () => {
     if (!validateOrder()) return;
     try {
-      const { branch, area, orderItems } = buildOrderData();
-      const totalPrice = getTotalPrice();
-      const deliveryPrice = getDeliveryPrice();
-      const finalTotal = getFinalTotal();
-      const branchName = branch?.name || '';
-      const areaName = area?.name || '';
+      const result = await submitOrder('whatsapp');
+
+      const branch = branches.find(b => b.id === selectedBranch);
       const whatsappNumber = branch?.whatsapp_phone || '';
+      const branchName = result?.branch_name || '';
+      const areaName = result?.area_name || '';
+      const subtotal = Number(result?.subtotal ?? 0);
+      const deliveryPrice = Number(result?.delivery_fee ?? 0);
+      const finalTotal = Number(result?.total_price ?? 0);
+      const serverItems: any[] = Array.isArray(result?.items) ? result.items : [];
 
-      const hasDashboardOrders = limits?.features?.dashboard_orders;
-      if (hasDashboardOrders) {
-        await supabase.from('orders').insert({
-          restaurant_id: restaurant.id, branch_id: selectedBranch || null, delivery_area_id: selectedArea || null,
-          customer_name: customerName, customer_phone: customerPhone, customer_address: customerAddress,
-          payment_method: paymentMethod, items: orderItems as any, total_price: finalTotal,
-          notes: areaName ? `المنطقة: ${areaName} - الفرع: ${branchName || ''}` : (branchName ? `الفرع: ${branchName}` : null),
-          status: 'pending', order_source: 'whatsapp',
-        } as any);
-      }
-
-      const orderText = cart.map(item => {
-        const sizeText = item.selectedSize ? ` (${item.selectedSize.name})` : '';
-        const variantText = item.selectedVariant ? ` 🏷️ ${item.selectedVariant.name}` : '';
-        const extrasText = item.selectedExtras?.length ? ` + ${item.selectedExtras.map(e => e.name).join(', ')}` : '';
-        return `${item.quantity} - ${item.name}${sizeText}${variantText}${extrasText} = ${item.price * item.quantity} جنيه`;
+      // نص الرسالة يُبنى من أرقام السيرفر فقط
+      const orderText = serverItems.map(item => {
+        const sizeText = item.size ? ` (${item.size.name})` : '';
+        const variantText = item.variant ? ` 🏷️ ${item.variant.name}` : '';
+        const extrasText = item.extras?.length ? ` + ${item.extras.map((e: any) => e.name).join(', ')}` : '';
+        return `${item.quantity} - ${item.name}${sizeText}${variantText}${extrasText} = ${item.total} جنيه`;
       }).join('\n');
 
       const branchText = branchName ? `\n🏪 الفرع: ${branchName}` : '';
@@ -151,14 +183,14 @@ export default function CartDialog({
       const paymentMethodText = paymentMethod === 'cash' ? 'الدفع عند الاستلام' : paymentMethod;
       const paymentNote = paymentMethod !== 'cash' ? '\n\n⏳ ملاحظة: العميل سيرسل إثبات الدفع بعد هذه الرسالة' : '';
 
-      const message = `🛒 طلب جديد من ${restaurant.name}${branchText}${areaText}\n\n👤 بيانات العميل:\nالاسم: ${customerName}\nالعنوان: ${customerAddress}\nرقم الهاتف: ${customerPhone}\n\n📋 تفاصيل الطلب:\n${orderText}\n\n💰 إجمالي الطلب: ${totalPrice} جنيه${deliveryText}\n💵 الإجمالي الكلي: ${finalTotal} جنيه\n💳 طريقة الدفع: ${paymentMethodText}${paymentNote}\n\nالرجاء تأكيد استلام الطلب.\nشكراً لكم.`;
+      const message = `🛒 طلب جديد من ${restaurant.name}${branchText}${areaText}\n\n👤 بيانات العميل:\nالاسم: ${customerName}\nالعنوان: ${customerAddress}\nرقم الهاتف: ${customerPhone}\n\n📋 تفاصيل الطلب:\n${orderText}\n\n💰 إجمالي الطلب: ${subtotal} جنيه${deliveryText}\n💵 الإجمالي الكلي: ${finalTotal} جنيه\n💳 طريقة الدفع: ${paymentMethodText}${paymentNote}\n\nالرجاء تأكيد استلام الطلب.\nشكراً لكم.`;
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
 
       resetOrderState();
       toast({ title: 'تم إرسال الطلب', description: 'تم إرسال طلبك عبر واتساب بنجاح' });
     } catch (error) {
       console.error('خطأ عام:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى', variant: 'destructive' });
+      toast({ title: 'خطأ', description: translateError(error), variant: 'destructive' });
     }
   };
 
